@@ -1,5 +1,7 @@
 # grok-mcp-server
 
+[日本語](README.ja.md)
+
 A **Grok API proxy MCP server** that connects to claude.ai's web interface.
 
 Ask questions to xAI's Grok model directly from claude.ai using the `ask_grok` tool.

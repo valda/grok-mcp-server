@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     client_id: clientId,
     client_name: clientName,
     redirect_uris: body.redirect_uris,
-    grant_types: ["authorization_code"],
+    grant_types: ["authorization_code", "refresh_token"],
     response_types: ["code"],
   };
 

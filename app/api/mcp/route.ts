@@ -5,15 +5,14 @@
  * Grok API（xAI）へプロキシする `ask_grok` ツールを公開する。
  *
  * Transport: Vercel Serverless 前提のため Streamable HTTP (SSE) は不採用。
- * セッション管理: Mcp-Session-Id を署名付き JWT で発行（ステートレス）。
+ * セッション管理: Mcp-Session-Id は initialize 済みマーカーとして扱い、
+ * 認証そのものは Bearer access token で行う。
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import {
   verifyJwt,
-  signMcpSession,
   type AccessTokenPayload,
-  type McpSessionPayload,
 } from "../oauth/jwt";
 import { mcpCorsHeaders, mcpOptionsResponse } from "./cors";
 
@@ -55,16 +54,9 @@ function jsonRpcError(id: string | number | null, code: number, message: string)
   );
 }
 
-function toolResult(id: string | number | null, text: string, isError = false) {
-  return jsonRpcResult(id, {
-    content: [{ type: "text", text }],
-    ...(isError && { isError: true }),
-  });
-}
-
-/** Bearer トークンを検証する。成功時は payload、失敗時は NextResponse を返す */
+/** Bearer トークンを検証する。成功時は payload とトークン文字列、失敗時は NextResponse を返す */
 async function authenticate(request: NextRequest): Promise<
-  { ok: true; payload: AccessTokenPayload } | { ok: false; response: NextResponse }
+  { ok: true; payload: AccessTokenPayload; token: string } | { ok: false; response: NextResponse }
 > {
   const auth = request.headers.get("authorization");
   const token = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
@@ -90,18 +82,23 @@ async function authenticate(request: NextRequest): Promise<
     };
   }
 
-  return { ok: true, payload };
+  return { ok: true, payload, token };
 }
 
-/** Mcp-Session-Id ヘッダーの JWT を検証する */
-async function verifySession(request: NextRequest): Promise<McpSessionPayload | null> {
-  const sessionToken = request.headers.get("mcp-session-id");
-  if (!sessionToken) return null;
+/** initialize 済みかどうかをヘッダー有無で確認する */
+function hasSessionHeader(request: NextRequest): boolean {
+  return !!request.headers.get("mcp-session-id");
+}
 
-  const payload = await verifyJwt<McpSessionPayload>(sessionToken);
-  if (!payload || payload.type !== "mcp_session") return null;
+function sessionHeaders(accessToken: string): Record<string, string> {
+  return { "Mcp-Session-Id": accessToken };
+}
 
-  return payload;
+function toolResult(id: string | number | null, text: string, isError = false, extraHeaders?: Record<string, string>) {
+  return jsonRpcResult(id, {
+    content: [{ type: "text", text }],
+    ...(isError && { isError: true }),
+  }, extraHeaders);
 }
 
 /** xAI API を呼び出す */
@@ -172,8 +169,6 @@ export async function POST(request: NextRequest) {
 
   // --- initialize ---
   if (method === "initialize") {
-    const sessionId = await signMcpSession(auth.payload.client_id);
-
     return jsonRpcResult(
       id,
       {
@@ -181,14 +176,13 @@ export async function POST(request: NextRequest) {
         serverInfo: { name: "grok-mcp-server", version: "0.1.0" },
         capabilities: { tools: {} },
       },
-      { "Mcp-Session-Id": sessionId },
+      sessionHeaders(auth.token),
     );
   }
 
-  // --- initialize 以降はセッション検証必須 ---
-  const session = await verifySession(request);
-  if (!session) {
-    return jsonRpcError(id ?? null, -32000, "Missing or invalid Mcp-Session-Id");
+  // --- initialize 以降はセッションヘッダー必須 ---
+  if (!hasSessionHeader(request)) {
+    return jsonRpcError(id ?? null, -32000, "Missing Mcp-Session-Id");
   }
 
   // --- notifications ---
@@ -196,9 +190,11 @@ export async function POST(request: NextRequest) {
     return new NextResponse(null, { status: 202, headers: mcpCorsHeaders });
   }
 
+  const headers = sessionHeaders(auth.token);
+
   // --- tools/list ---
   if (method === "tools/list") {
-    return jsonRpcResult(id, { tools: [ASK_GROK_TOOL] });
+    return jsonRpcResult(id, { tools: [ASK_GROK_TOOL] }, headers);
   }
 
   // --- tools/call ---
@@ -209,17 +205,17 @@ export async function POST(request: NextRequest) {
 
     const prompt = params.arguments?.prompt;
     if (!prompt || typeof prompt !== "string") {
-      return toolResult(id, "prompt is required", true);
+      return toolResult(id, "prompt is required", true, headers);
     }
 
     const model = params.arguments?.model || DEFAULT_MODEL;
 
     try {
       const result = await callXai(prompt, model);
-      return toolResult(id, result);
+      return toolResult(id, result, false, headers);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      return toolResult(id, message, true);
+      return toolResult(id, message, true, headers);
     }
   }
 

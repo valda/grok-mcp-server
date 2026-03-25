@@ -56,7 +56,7 @@ npm run dev
 
 - **OAuth 2.1** — PKCE 必須、Dynamic Client Registration 対応
 - **MCP** — POST-only JSON-RPC endpoint（`ask_grok` ツールを公開）
-- **ステートレス** — 認可コード・アクセストークン・セッションすべて署名付き JWT
+- **ステートレス** — 認可コード・アクセストークンは署名付き JWT、`Mcp-Session-Id` はアクセストークンを流用（独立したセッション JWT は不使用）
 
 ### エンドポイント
 

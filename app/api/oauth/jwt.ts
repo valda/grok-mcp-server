@@ -32,11 +32,6 @@ export interface RefreshTokenPayload extends JWTPayload {
   client_id: string;
 }
 
-export interface McpSessionPayload extends JWTPayload {
-  type: "mcp_session";
-  client_id: string;
-}
-
 /** リフレッシュトークン JWT を発行する（有効期限 30 日） */
 export async function signRefreshToken(clientId: string): Promise<string> {
   return new SignJWT({
@@ -45,18 +40,6 @@ export async function signRefreshToken(clientId: string): Promise<string> {
   })
     .setProtectedHeader({ alg: "HS256" })
     .setExpirationTime("30d")
-    .setIssuedAt()
-    .sign(getSecret());
-}
-
-/** MCP セッション JWT を発行する（有効期限 1 時間） */
-export async function signMcpSession(clientId: string): Promise<string> {
-  return new SignJWT({
-    type: "mcp_session",
-    client_id: clientId,
-  })
-    .setProtectedHeader({ alg: "HS256" })
-    .setExpirationTime("1h")
     .setIssuedAt()
     .sign(getSecret());
 }

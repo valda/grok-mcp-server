@@ -58,7 +58,7 @@ The dev server starts at `http://localhost:3000`.
 
 - **OAuth 2.1** — PKCE required, Dynamic Client Registration supported
 - **MCP** — POST-only JSON-RPC endpoint (exposes the `ask_grok` tool)
-- **Stateless** — Authorization codes, access tokens, and sessions are all signed JWTs
+- **Stateless** — Authorization codes and access tokens are signed JWTs; `Mcp-Session-Id` reuses the access token (no separate session JWT)
 
 ### Endpoints
 

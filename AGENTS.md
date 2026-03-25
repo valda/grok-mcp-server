@@ -32,16 +32,18 @@ Client → /.well-known/oauth-authorization-server  (メタデータ取得)
        → /api/oauth/token                          (認可コード → アクセストークン JWT 交換、PKCE 検証)
 ```
 
-- 認可コード・アクセストークン・MCPセッションはすべて **ステートレス JWT**（jose ライブラリ）
+- 認可コード・アクセストークンは **ステートレス JWT**（jose ライブラリ）
+- `Mcp-Session-Id` はアクセストークンをそのまま流用（独立したセッション JWT は廃止済み）
 - クライアント登録情報のみインメモリ `Map`（`app/api/oauth/clients.ts`）
-- JWT ユーティリティは `app/api/oauth/jwt.ts` に集約（`signAuthorizationCode`, `signAccessToken`, `signMcpSession`, `verifyJwt`）
+- JWT ユーティリティは `app/api/oauth/jwt.ts` に集約（`signAuthorizationCode`, `signAccessToken`, `signRefreshToken`, `verifyJwt`）
 
 ### MCP エンドポイント（`app/api/mcp/route.ts`）
 
 - **POST-only** の JSON-RPC endpoint（Vercel Serverless の制約で SSE 非対応）
-- `initialize` → セッション JWT 発行（`Mcp-Session-Id` ヘッダー）
+- 認証は Bearer access token で行い、`Mcp-Session-Id` は initialize 済みマーカーとして扱う
+- `initialize` → アクセストークンを `Mcp-Session-Id` ヘッダーに返却
 - `tools/list` → `ask_grok` ツール定義を返却
-- `tools/call` → xAI API (`https://api.x.ai/v1/chat/completions`) へプロキシ
+- `tools/call` → xAI API (`https://api.x.ai/v1/responses`) へプロキシ
 - GET / DELETE は 405
 
 ### CORS
@@ -52,5 +54,6 @@ MCP 側は `Mcp-Session-Id` ヘッダーの送受信・Expose を許可。
 ## Design Decisions
 
 - Vercel Serverless 前提のため、すべてのサーバー状態を JWT に埋め込むステートレス設計
+- `Mcp-Session-Id` にアクセストークンを流用し、期限の二重管理を排除（refresh token でアクセストークンを更新すればセッションも自然に延命される）
 - MCP SDK は使わず、薄い JSON-RPC ディスパッチャを自前実装
-- Public client のみ対応（client_secret なし）
+- Public client のみ対応（client_secret なし、`token_endpoint_auth_methods_supported: ["none"]`）

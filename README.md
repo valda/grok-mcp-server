@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# grok-mcp-server
 
-## Getting Started
+claude.ai の Web 版から接続できる **Grok API プロキシ MCP サーバー**。
 
-First, run the development server:
+xAI の Grok モデルに対して、claude.ai 上から `ask_grok` ツールで質問できる。
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## 仕組み
+
+```
+claude.ai  ──OAuth 2.1──▶  grok-mcp-server (Vercel)  ──API──▶  xAI Grok API
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **OAuth 2.1** — PKCE 必須、Dynamic Client Registration 対応
+- **MCP** — POST-only JSON-RPC endpoint（`ask_grok` ツールを公開）
+- **ステートレス** — 認可コード・アクセストークン・セッションすべて署名付き JWT
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## セットアップ
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`npm install` → `npm run dev` で開発サーバーが起動する。
 
-## Learn More
+Vercel のプロジェクト設定（Settings → Environment Variables）で以下を設定し、GitHub 連携で `git push` すればデプロイされる。ローカル開発時は `.env.local` でも可。
 
-To learn more about Next.js, take a look at the following resources:
+| 変数 | 必須 | 説明 |
+|------|------|------|
+| `JWT_SECRET` | Yes | JWT 署名鍵（例: `openssl rand -base64 32` で生成） |
+| `XAI_API_KEY` | Yes | xAI API キー（[console.x.ai](https://console.x.ai) で取得） |
+| `BASE_URL` | No | サーバーの公開 URL（デフォルト: `http://localhost:3000`） |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+`BASE_URL` は Vercel デプロイ後、プロジェクトの Settings → Domains で確認できる URL（例: `https://your-project.vercel.app`）を設定する。
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## エンドポイント
 
-## Deploy on Vercel
+| パス | メソッド | 説明 |
+|------|---------|------|
+| `/.well-known/oauth-authorization-server` | GET | OAuth メタデータ |
+| `/api/oauth/register` | POST | クライアント登録 |
+| `/api/oauth/authorize` | GET/POST | 認可（同意画面 → コード発行） |
+| `/api/oauth/token` | POST | トークン発行（PKCE 検証） |
+| `/api/mcp` | POST | MCP JSON-RPC endpoint |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 技術スタック
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Next.js](https://nextjs.org) 16 (App Router)
+- [jose](https://github.com/panva/jose) — JWT 署名・検証
+- TypeScript 5
+
+## ライセンス
+
+MIT

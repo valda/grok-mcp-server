@@ -111,25 +111,31 @@ async function callXai(prompt: string, model: string): Promise<string> {
     throw new Error("XAI_API_KEY environment variable is not set");
   }
 
+  const requestBody = {
+    model,
+    input: [{ role: "user", content: prompt }],
+    tools: [{ type: "x_search" }],
+  };
+
+  console.log("[xAI] request:", JSON.stringify(requestBody));
+
   const response = await fetch(XAI_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({
-      model,
-      input: [{ role: "user", content: prompt }],
-      tools: [{ type: "x_search" }],
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   if (!response.ok) {
     const body = await response.text();
+    console.log("[xAI] error:", response.status, body);
     throw new Error(`xAI API error (${response.status}): ${body}`);
   }
 
   const data = await response.json();
+  console.log("[xAI] response:", JSON.stringify(data));
 
   // output 配列から type: "message" の content を取り出す
   for (const item of data.output ?? []) {
@@ -156,6 +162,8 @@ export async function POST(request: NextRequest) {
 
   // ボディパース
   const body = await request.json().catch(() => null);
+  console.log("[MCP] request:", JSON.stringify(body));
+
   if (!body || !body.method) {
     return jsonRpcError(body?.id ?? null, -32700, "Parse error");
   }

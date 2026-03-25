@@ -10,7 +10,7 @@ import { NextResponse } from "next/server";
 import { corsHeaders, optionsResponse } from "../../api/oauth/cors";
 
 function getBaseUrl(): string {
-  return process.env.BASE_URL || "http://localhost:3000";
+  return process.env.BASE_URL?.replace(/\/$/, "") || "http://localhost:3000";
 }
 
 export async function GET() {

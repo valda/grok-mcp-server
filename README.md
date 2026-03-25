@@ -1,64 +1,64 @@
 # grok-mcp-server
 
-claude.ai の Web 版から接続できる **Grok API プロキシ MCP サーバー**。
+A **Grok API proxy MCP server** that connects to claude.ai's web interface.
 
-xAI の Grok モデルに対して、claude.ai 上から `ask_grok` ツールで質問できる。
+Ask questions to xAI's Grok model directly from claude.ai using the `ask_grok` tool.
 
-## 仕組み
+## How It Works
 
 ```
 claude.ai  ──OAuth 2.1──▶  grok-mcp-server (Vercel)  ──API──▶  xAI Grok API
 ```
 
-- **OAuth 2.1** — PKCE 必須、Dynamic Client Registration 対応
-- **MCP** — POST-only JSON-RPC endpoint（`ask_grok` ツールを公開）
-- **ステートレス** — 認可コード・アクセストークン・セッションすべて署名付き JWT
+- **OAuth 2.1** — PKCE required, Dynamic Client Registration supported
+- **MCP** — POST-only JSON-RPC endpoint (exposes the `ask_grok` tool)
+- **Stateless** — Authorization codes, access tokens, and sessions are all signed JWTs
 
-## セットアップ
+## Setup
 
-`npm install` → `npm run dev` で開発サーバーが起動する。
+Run `npm install` followed by `npm run dev` to start the development server.
 
-Vercel のプロジェクト設定（Settings → Environment Variables）で以下を設定し、GitHub 連携で `git push` すればデプロイされる。ローカル開発時は `.env.local` でも可。
+Set the following environment variables in your Vercel project settings (Settings > Environment Variables) and deploy via GitHub integration with `git push`. For local development, you can use `.env.local` instead.
 
-| 変数 | 必須 | 説明 |
-|------|------|------|
-| `JWT_SECRET` | Yes | JWT 署名鍵（例: `openssl rand -base64 32` で生成） |
-| `XAI_API_KEY` | Yes | xAI API キー（[console.x.ai](https://console.x.ai) で取得） |
-| `BASE_URL` | No | サーバーの公開 URL（デフォルト: `http://localhost:3000`） |
-| `AUTHORIZE_PASSWORD` | No | 認可画面のパスワード（未設定時はパスワードなしで認可される） |
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `JWT_SECRET` | Yes | JWT signing key (e.g., generate with `openssl rand -base64 32`) |
+| `XAI_API_KEY` | Yes | xAI API key (obtain from [console.x.ai](https://console.x.ai)) |
+| `BASE_URL` | No | Public URL of the server (default: `http://localhost:3000`) |
+| `AUTHORIZE_PASSWORD` | No | Password for the authorization screen (if unset, authorization proceeds without a password) |
 
-`BASE_URL` は Vercel デプロイ後、プロジェクトの Settings → Domains で確認できる URL（例: `https://your-project.vercel.app`）を設定する。
+Set `BASE_URL` to the URL shown in your Vercel project's Settings > Domains after deployment (e.g., `https://your-project.vercel.app`).
 
-> **注意**: `AUTHORIZE_PASSWORD` を設定しないと、URL を知っている誰でも認可を通過でき、あなたの xAI API トークンが消費されます。本番環境では必ず設定してください。なお、パスワードは平文での突き合わせのため、強固な認証が必要な場合は別途対策を検討してください。
+> **Warning**: If `AUTHORIZE_PASSWORD` is not set, anyone who knows the URL can complete authorization, consuming your xAI API tokens. Always set this in production. Note that the password is compared in plaintext, so consider additional measures if stronger authentication is needed.
 
-## エンドポイント
+## Endpoints
 
-| パス | メソッド | 説明 |
-|------|---------|------|
-| `/.well-known/oauth-authorization-server` | GET | OAuth メタデータ |
-| `/api/oauth/register` | POST | クライアント登録 |
-| `/api/oauth/authorize` | GET/POST | 認可（同意画面 → コード発行） |
-| `/api/oauth/token` | POST | トークン発行（PKCE 検証） |
+| Path | Method | Description |
+|------|--------|-------------|
+| `/.well-known/oauth-authorization-server` | GET | OAuth metadata |
+| `/api/oauth/register` | POST | Client registration |
+| `/api/oauth/authorize` | GET/POST | Authorization (consent screen and code issuance) |
+| `/api/oauth/token` | POST | Token issuance (PKCE verification) |
 | `/api/mcp` | POST | MCP JSON-RPC endpoint |
 
-## claude.ai（Web版）での使い方
+## Usage with claude.ai (Web)
 
-1. [claude.ai](https://claude.ai) にログイン
-2. Settings → Integrations → Add More を開く
-3. 以下の情報を入力:
-   - **URL**: `https://your-project.vercel.app/api/mcp`（デプロイした URL に置き換える）
-4. 「Add」すると OAuth 認可フローが始まる
-5. 認可画面で `AUTHORIZE_PASSWORD` に設定したパスワードを入力し「許可する」を押す
-6. チャットで `ask_grok` ツールが使えるようになる
+1. Log in to [claude.ai](https://claude.ai)
+2. Go to Settings > Integrations > Add More
+3. Enter the following:
+   - **URL**: `https://your-project.vercel.app/api/mcp` (replace with your deployed URL)
+4. Click "Add" to start the OAuth authorization flow
+5. Enter the password set in `AUTHORIZE_PASSWORD` on the authorization screen and click "Allow"
+6. The `ask_grok` tool is now available in your chats
 
-使用例: 「ask_grok を使って、最近の AI に関する X の投稿を検索して」
+Example: "Use ask_grok to search for recent AI-related posts on X"
 
-## 技術スタック
+## Tech Stack
 
 - [Next.js](https://nextjs.org) 16 (App Router)
-- [jose](https://github.com/panva/jose) — JWT 署名・検証
+- [jose](https://github.com/panva/jose) — JWT signing and verification
 - TypeScript 5
 
-## ライセンス
+## License
 
 MIT

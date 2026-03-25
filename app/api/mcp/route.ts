@@ -18,18 +18,20 @@ import {
 import { mcpCorsHeaders, mcpOptionsResponse } from "./cors";
 
 const XAI_API_URL = "https://api.x.ai/v1/chat/completions";
+const DEFAULT_MODEL = "grok-4-1-fast-non-reasoning";
+const XAI_TOOLS = [{ type: "x_search" as const }];
 
 const ASK_GROK_TOOL = {
   name: "ask_grok",
-  description: "xAI の Grok モデルに質問する",
+  description: "X（旧Twitter）の投稿を検索・読み出しする。Grok の X Search 機能を使い、X 上の投稿やトレンドをリアルタイムに取得できる。",
   inputSchema: {
     type: "object" as const,
     properties: {
-      prompt: { type: "string" as const, description: "Grok への質問" },
+      prompt: { type: "string" as const, description: "検索クエリや質問（例: 「Next.js 15 に関する最新の投稿」「@elonmusk の最近の発言」）" },
       model: {
         type: "string" as const,
-        description: "使用するモデル（省略時: grok-3-fast）",
-        default: "grok-3-fast",
+        description: `使用するモデル（省略時: ${DEFAULT_MODEL}）`,
+        default: DEFAULT_MODEL,
       },
     },
     required: ["prompt"],
@@ -119,6 +121,7 @@ async function callXai(prompt: string, model: string): Promise<string> {
     body: JSON.stringify({
       model,
       messages: [{ role: "user", content: prompt }],
+      tools: XAI_TOOLS,
     }),
   });
 
@@ -190,7 +193,7 @@ export async function POST(request: NextRequest) {
       return toolResult(id, "prompt is required", true);
     }
 
-    const model = params.arguments?.model || "grok-3-fast";
+    const model = params.arguments?.model || DEFAULT_MODEL;
 
     try {
       const result = await callXai(prompt, model);

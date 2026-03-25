@@ -66,26 +66,18 @@ function validateParams(params: URLSearchParams): NextResponse | null {
   return null;
 }
 
-/** GET: バリデーション → 同意画面を返す */
-export async function GET(request: NextRequest) {
-  const params = request.nextUrl.searchParams;
-  const validationError = validateParams(params);
-  if (validationError) return validationError;
+const FORWARD_PARAMS = [
+  "client_id",
+  "redirect_uri",
+  "response_type",
+  "state",
+  "code_challenge",
+  "code_challenge_method",
+] as const;
 
-  const clientId = params.get("client_id")!;
-  const client = clients.get(clientId)!;
-
-  // form の hidden fields 用にパラメータを引き回す
-  const forwardParams = [
-    "client_id",
-    "redirect_uri",
-    "response_type",
-    "state",
-    "code_challenge",
-    "code_challenge_method",
-  ] as const;
-
-  const hiddenInputs = forwardParams
+/** 同意画面 HTML を生成する */
+function renderConsentPage(clientName: string, params: URLSearchParams, errorMessage?: string): NextResponse {
+  const hiddenInputs = FORWARD_PARAMS
     .map((key) => {
       const value = params.get(key);
       return value
@@ -93,6 +85,19 @@ export async function GET(request: NextRequest) {
         : "";
     })
     .join("\n        ");
+
+  const needsPassword = !!process.env.AUTHORIZE_PASSWORD;
+
+  const passwordField = needsPassword
+    ? `<div style="margin-bottom: 1rem; text-align: left;">
+          <label for="password" style="display: block; font-size: 0.875rem; color: #555; margin-bottom: 0.25rem;">パスワード</label>
+          <input type="password" id="password" name="password" required style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box;" />
+        </div>`
+    : "";
+
+  const errorHtml = errorMessage
+    ? `<p style="color: #dc2626; font-size: 0.875rem; margin: 0 0 1rem;">${escapeHtml(errorMessage)}</p>`
+    : "";
 
   const html = `<!DOCTYPE html>
 <html lang="ja">
@@ -113,9 +118,11 @@ export async function GET(request: NextRequest) {
 <body>
   <div class="card">
     <h1>Grok MCP Server へのアクセスを許可しますか？</h1>
-    <p><span class="client-name">${escapeHtml(client.client_name)}</span> がアクセスを要求しています。</p>
+    <p><span class="client-name">${escapeHtml(clientName)}</span> がアクセスを要求しています。</p>
+    ${errorHtml}
     <form method="POST" action="/api/oauth/authorize">
         ${hiddenInputs}
+        ${passwordField}
         <button type="submit">許可する</button>
     </form>
   </div>
@@ -123,12 +130,22 @@ export async function GET(request: NextRequest) {
 </html>`;
 
   return new NextResponse(html, {
-    status: 200,
+    status: errorMessage ? 403 : 200,
     headers: { "Content-Type": "text/html; charset=utf-8" },
   });
 }
 
-/** POST: 認可コードを発行してリダイレクト */
+/** GET: バリデーション → 同意画面を返す */
+export async function GET(request: NextRequest) {
+  const params = request.nextUrl.searchParams;
+  const validationError = validateParams(params);
+  if (validationError) return validationError;
+
+  const client = clients.get(params.get("client_id")!)!;
+  return renderConsentPage(client.client_name, params);
+}
+
+/** POST: パスワード検証 → 認可コードを発行してリダイレクト */
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
   const params = new URLSearchParams();
@@ -138,6 +155,16 @@ export async function POST(request: NextRequest) {
 
   const validationError = validateParams(params);
   if (validationError) return validationError;
+
+  // パスワード検証（AUTHORIZE_PASSWORD 未設定時はスキップ）
+  const expectedPassword = process.env.AUTHORIZE_PASSWORD;
+  if (expectedPassword) {
+    const password = params.get("password") ?? "";
+    if (password !== expectedPassword) {
+      const client = clients.get(params.get("client_id")!)!;
+      return renderConsentPage(client.client_name, params, "パスワードが正しくありません");
+    }
+  }
 
   const redirectUri = params.get("redirect_uri")!;
   const state = params.get("state") ?? undefined;

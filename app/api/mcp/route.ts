@@ -17,7 +17,7 @@ import {
 } from "../oauth/jwt";
 import { mcpCorsHeaders, mcpOptionsResponse } from "./cors";
 
-const XAI_API_URL = "https://api.x.ai/v1/chat/completions";
+const XAI_API_URL = "https://api.x.ai/v1/responses";
 const DEFAULT_MODEL = "grok-4-1-fast-non-reasoning";
 
 const ASK_GROK_TOOL = {
@@ -119,7 +119,8 @@ async function callXai(prompt: string, model: string): Promise<string> {
     },
     body: JSON.stringify({
       model,
-      messages: [{ role: "user", content: prompt }],
+      input: [{ role: "user", content: prompt }],
+      tools: [{ type: "x_search" }],
     }),
   });
 
@@ -129,7 +130,19 @@ async function callXai(prompt: string, model: string): Promise<string> {
   }
 
   const data = await response.json();
-  return data.choices[0].message.content;
+
+  // output 配列から type: "message" の content を取り出す
+  for (const item of data.output ?? []) {
+    if (item.type === "message" && Array.isArray(item.content)) {
+      for (const block of item.content) {
+        if (block.type === "output_text" && block.text) {
+          return block.text;
+        }
+      }
+    }
+  }
+
+  throw new Error("No text content in xAI API response");
 }
 
 // ---------------------------------------------------------------------------

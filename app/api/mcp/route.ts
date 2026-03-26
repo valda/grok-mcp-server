@@ -16,6 +16,8 @@ import {
 } from "../oauth/jwt";
 import { mcpCorsHeaders, mcpOptionsResponse } from "./cors";
 
+export const maxDuration = 60;
+
 const XAI_API_URL = "https://api.x.ai/v1/responses";
 const DEFAULT_MODEL = "grok-4-1-fast-non-reasoning";
 

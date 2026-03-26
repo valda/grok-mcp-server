@@ -21,14 +21,14 @@ const DEFAULT_MODEL = "grok-4-1-fast-non-reasoning";
 
 const ASK_GROK_TOOL = {
   name: "ask_grok",
-  description: "X（旧Twitter）の投稿を検索・読み出しする。Grok の X Search 機能を使い、X 上の投稿やトレンドをリアルタイムに取得できる。",
+  description: "Search and retrieve posts from X (formerly Twitter). Uses Grok's X Search to fetch real-time posts and trends from X.",
   inputSchema: {
     type: "object" as const,
     properties: {
-      prompt: { type: "string" as const, description: "検索クエリや質問（例: 「Next.js 15 に関する最新の投稿」「@elonmusk の最近の発言」）" },
+      prompt: { type: "string" as const, description: "Search query or question (e.g. \"latest posts about AI coding\", \"what is trending on X right now\")" },
       model: {
         type: "string" as const,
-        description: `使用するモデル（省略時: ${DEFAULT_MODEL}）`,
+        description: `Model to use (default: ${DEFAULT_MODEL})`,
         default: DEFAULT_MODEL,
       },
     },

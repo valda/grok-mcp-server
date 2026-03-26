@@ -59,6 +59,9 @@ function validateParams(params: URLSearchParams): NextResponse | null {
   }
 
   // PKCE 必須
+  // NOTE: code_challenge_method は検証していない。メタデータでは S256 のみ宣言しており、
+  // token エンドポイントで常に SHA-256 検証を行うため、plain 等で送られても最終的に弾かれる。
+  // クライアントは claude.ai 固定のため、早期エラーの実益が薄い。
   if (!params.get("code_challenge")) {
     return errorRedirect(redirectUri, "invalid_request", "code_challenge is required (PKCE)", state);
   }

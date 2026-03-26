@@ -10,7 +10,8 @@ Next.js App Router の Route Handlers として OAuth 2.1 認証フロー + MCP 
 
 - `npm run dev` — 開発サーバー起動（http://localhost:3000）
 - `npm run build` — プロダクションビルド
-- `npx tsc --noEmit` — 型チェック（lint 代わり、テストフレームワークは未導入）
+- `npm test` — Vitest でユニット・インテグレーションテスト実行
+- `npx tsc --noEmit` — 型チェック
 
 ## Environment Variables
 

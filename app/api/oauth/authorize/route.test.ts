@@ -154,7 +154,7 @@ describe("POST /api/oauth/authorize", () => {
       const res = await POST(req);
       expect(res.status).toBe(403);
       const html = await res.text();
-      expect(html).toContain("パスワード");
+      expect(html).toContain("password");
     } finally {
       if (original) process.env.AUTHORIZE_PASSWORD = original;
       else delete process.env.AUTHORIZE_PASSWORD;

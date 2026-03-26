@@ -42,5 +42,6 @@ yarn-error.log*
 next-env.d.ts
 
 .serena/
+.playwright-mcp/
 **/CLAUDE.local.md
 **/.claude/settings.local.json

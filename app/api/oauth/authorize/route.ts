@@ -9,6 +9,48 @@ import { NextRequest, NextResponse } from "next/server";
 import { clients } from "../clients";
 import { signAuthorizationCode } from "../jwt";
 
+type Locale = "ja" | "en";
+
+function detectLocale(request: NextRequest): Locale {
+  const accept = request.headers.get("accept-language") ?? "";
+  return accept.split(",").some((l) => l.trim().startsWith("ja")) ? "ja" : "en";
+}
+
+const consentMessages = {
+  ja: {
+    title: "認可リクエスト - Grok MCP Server",
+    heading: "Grok MCP Server へのアクセスを許可しますか？",
+    requesting: (name: string) => `<span class="client-name">${name}</span> がアクセスを要求しています。`,
+    passwordLabel: "パスワード",
+    approve: "許可する",
+    wrongPassword: "パスワードが正しくありません",
+    setupIncomplete: "⚠ セットアップが未完了です",
+    setupDesc: "環境変数 <code>AUTHORIZE_PASSWORD</code> が設定されていないため、認可を許可できません。",
+    setupSteps: [
+      "Vercel ダッシュボードでプロジェクトを開く",
+      "<strong>Settings → Environment Variables</strong> へ移動",
+      "<code>AUTHORIZE_PASSWORD</code> を追加し、任意のパスワードを設定",
+      "プロジェクトを再デプロイ",
+    ],
+  },
+  en: {
+    title: "Authorization Request - Grok MCP Server",
+    heading: "Allow access to Grok MCP Server?",
+    requesting: (name: string) => `<span class="client-name">${name}</span> is requesting access.`,
+    passwordLabel: "Password",
+    approve: "Allow",
+    wrongPassword: "Incorrect password",
+    setupIncomplete: "⚠ Setup Incomplete",
+    setupDesc: "Authorization is blocked because the <code>AUTHORIZE_PASSWORD</code> environment variable is not set.",
+    setupSteps: [
+      "Open your project in the Vercel dashboard",
+      "Go to <strong>Settings → Environment Variables</strong>",
+      "Add <code>AUTHORIZE_PASSWORD</code> with a password of your choice",
+      "Redeploy the project",
+    ],
+  },
+} as const;
+
 /** redirect_uri にエラーを返すリダイレクトレスポンス */
 function errorRedirect(redirectUri: string, error: string, description: string, state?: string) {
   const url = new URL(redirectUri);
@@ -79,7 +121,8 @@ const FORWARD_PARAMS = [
 ] as const;
 
 /** 同意画面 HTML を生成する */
-function renderConsentPage(clientName: string, params: URLSearchParams, errorMessage?: string): NextResponse {
+function renderConsentPage(clientName: string, params: URLSearchParams, locale: Locale, errorMessage?: string): NextResponse {
+  const t = consentMessages[locale];
   const hiddenInputs = FORWARD_PARAMS
     .map((key) => {
       const value = params.get(key);
@@ -93,21 +136,24 @@ function renderConsentPage(clientName: string, params: URLSearchParams, errorMes
 
   const passwordField = passwordConfigured
     ? `<div style="margin-bottom: 1rem; text-align: left;">
-          <label for="password" style="display: block; font-size: 0.875rem; color: #555; margin-bottom: 0.25rem;">パスワード</label>
+          <label for="password" style="display: block; font-size: 0.875rem; color: #555; margin-bottom: 0.25rem;">${escapeHtml(t.passwordLabel)}</label>
           <input type="password" id="password" name="password" required style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box;" />
         </div>`
     : "";
 
-  const errorHtml = errorMessage
-    ? `<p style="color: #dc2626; font-size: 0.875rem; margin: 0 0 1rem;">${escapeHtml(errorMessage)}</p>`
+  const displayError = errorMessage ?? (errorMessage === undefined ? undefined : errorMessage);
+  const errorHtml = displayError
+    ? `<p style="color: #dc2626; font-size: 0.875rem; margin: 0 0 1rem;">${escapeHtml(displayError)}</p>`
     : "";
 
+  const setupStepsHtml = t.setupSteps.map((step) => `<li>${step}</li>`).join("\n          ");
+
   const html = `<!DOCTYPE html>
-<html lang="ja">
+<html lang="${locale}">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>認可リクエスト - Grok MCP Server</title>
+  <title>${escapeHtml(t.title)}</title>
   <style>
     body { font-family: system-ui, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #f5f5f5; }
     .card { background: #fff; border-radius: 12px; padding: 2rem; max-width: 400px; width: 100%; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center; }
@@ -120,23 +166,20 @@ function renderConsentPage(clientName: string, params: URLSearchParams, errorMes
 </head>
 <body>
   <div class="card">
-    <h1>Grok MCP Server へのアクセスを許可しますか？</h1>
-    <p><span class="client-name">${escapeHtml(clientName)}</span> がアクセスを要求しています。</p>
+    <h1>${escapeHtml(t.heading)}</h1>
+    <p>${t.requesting(escapeHtml(clientName))}</p>
     ${errorHtml}
     ${passwordConfigured
       ? `<form method="POST" action="/api/oauth/authorize">
         ${hiddenInputs}
         ${passwordField}
-        <button type="submit">許可する</button>
+        <button type="submit">${escapeHtml(t.approve)}</button>
     </form>`
       : `<div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 1rem; text-align: left;">
-        <p style="color: #991b1b; font-weight: bold; margin: 0 0 0.5rem;">⚠ セットアップが未完了です</p>
-        <p style="color: #991b1b; margin: 0 0 0.75rem; font-size: 0.875rem;">環境変数 <code>AUTHORIZE_PASSWORD</code> が設定されていないため、認可を許可できません。</p>
+        <p style="color: #991b1b; font-weight: bold; margin: 0 0 0.5rem;">${t.setupIncomplete}</p>
+        <p style="color: #991b1b; margin: 0 0 0.75rem; font-size: 0.875rem;">${t.setupDesc}</p>
         <ol style="color: #991b1b; font-size: 0.875rem; margin: 0; padding-left: 1.25rem; line-height: 1.6;">
-          <li>Vercel ダッシュボードでプロジェクトを開く</li>
-          <li><strong>Settings → Environment Variables</strong> へ移動</li>
-          <li><code>AUTHORIZE_PASSWORD</code> を追加し、任意のパスワードを設定</li>
-          <li>プロジェクトを再デプロイ</li>
+          ${setupStepsHtml}
         </ol>
       </div>`
     }
@@ -156,12 +199,14 @@ export async function GET(request: NextRequest) {
   const validationError = validateParams(params);
   if (validationError) return validationError;
 
+  const locale = detectLocale(request);
   const client = clients.get(params.get("client_id")!)!;
-  return renderConsentPage(client.client_name, params);
+  return renderConsentPage(client.client_name, params, locale);
 }
 
 /** POST: パスワード検証 → 認可コードを発行してリダイレクト */
 export async function POST(request: NextRequest) {
+  const locale = detectLocale(request);
   const formData = await request.formData();
   const params = new URLSearchParams();
   for (const [key, value] of formData.entries()) {
@@ -175,12 +220,12 @@ export async function POST(request: NextRequest) {
   const expectedPassword = process.env.AUTHORIZE_PASSWORD;
   if (!expectedPassword) {
     const client = clients.get(params.get("client_id")!)!;
-    return renderConsentPage(client.client_name, params);
+    return renderConsentPage(client.client_name, params, locale);
   }
   const password = params.get("password") ?? "";
   if (password !== expectedPassword) {
     const client = clients.get(params.get("client_id")!)!;
-    return renderConsentPage(client.client_name, params, "パスワードが正しくありません");
+    return renderConsentPage(client.client_name, params, locale, consentMessages[locale].wrongPassword);
   }
 
   const redirectUri = params.get("redirect_uri")!;

@@ -8,6 +8,7 @@ import { createJsonRequest, createRequest, generatePkce } from "../test-helpers"
 describe("OAuth フロー一気通貫テスト", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    process.env.AUTHORIZE_PASSWORD = "integration-test-password";
   });
 
   it("register → authorize → token → MCP initialize → tools/list → tools/call", async () => {
@@ -32,6 +33,7 @@ describe("OAuth フロー一気通貫テスト", () => {
       code_challenge: codeChallenge,
       code_challenge_method: "S256",
       state: "integration-test",
+      password: "integration-test-password",
     });
 
     const authRes = await authorizePost(

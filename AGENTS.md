@@ -16,9 +16,10 @@ Next.js App Router の Route Handlers として OAuth 2.1 認証フロー + MCP 
 
 | 変数 | 用途 |
 |------|------|
-| `BASE_URL` | サーバーの公開URL（未設定時 `http://localhost:3000`） |
-| `JWT_SECRET` | JWT 署名鍵（**必須**、未設定時は起動時エラー） |
-| `XAI_API_KEY` | xAI API キー（ツール呼び出し時に必要） |
+| `JWT_SECRET` | JWT 署名鍵（**必須**） |
+| `XAI_API_KEY` | xAI API キー（**必須**、ツール呼び出し時に必要） |
+| `AUTHORIZE_PASSWORD` | OAuth 認可画面のパスワード（**必須**、未設定時は認可ブロック） |
+| `BASE_URL` | サーバーの公開URL（任意。未設定時は `VERCEL_PROJECT_PRODUCTION_URL` → `VERCEL_URL` → `http://localhost:3000` の順にフォールバック） |
 
 ## Architecture
 

@@ -10,7 +10,12 @@ import { NextResponse } from "next/server";
 import { corsHeaders, optionsResponse } from "../../api/oauth/cors";
 
 function getBaseUrl(): string {
-  return process.env.BASE_URL?.replace(/\/$/, "") || "http://localhost:3000";
+  const url =
+    process.env.BASE_URL ||
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL && `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`) ||
+    (process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`) ||
+    "http://localhost:3000";
+  return url.replace(/\/$/, "");
 }
 
 export async function GET() {

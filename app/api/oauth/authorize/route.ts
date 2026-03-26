@@ -89,9 +89,9 @@ function renderConsentPage(clientName: string, params: URLSearchParams, errorMes
     })
     .join("\n        ");
 
-  const needsPassword = !!process.env.AUTHORIZE_PASSWORD;
+  const passwordConfigured = !!process.env.AUTHORIZE_PASSWORD;
 
-  const passwordField = needsPassword
+  const passwordField = passwordConfigured
     ? `<div style="margin-bottom: 1rem; text-align: left;">
           <label for="password" style="display: block; font-size: 0.875rem; color: #555; margin-bottom: 0.25rem;">パスワード</label>
           <input type="password" id="password" name="password" required style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box;" />
@@ -123,11 +123,23 @@ function renderConsentPage(clientName: string, params: URLSearchParams, errorMes
     <h1>Grok MCP Server へのアクセスを許可しますか？</h1>
     <p><span class="client-name">${escapeHtml(clientName)}</span> がアクセスを要求しています。</p>
     ${errorHtml}
-    <form method="POST" action="/api/oauth/authorize">
+    ${passwordConfigured
+      ? `<form method="POST" action="/api/oauth/authorize">
         ${hiddenInputs}
         ${passwordField}
         <button type="submit">許可する</button>
-    </form>
+    </form>`
+      : `<div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 1rem; text-align: left;">
+        <p style="color: #991b1b; font-weight: bold; margin: 0 0 0.5rem;">⚠ セットアップが未完了です</p>
+        <p style="color: #991b1b; margin: 0 0 0.75rem; font-size: 0.875rem;">環境変数 <code>AUTHORIZE_PASSWORD</code> が設定されていないため、認可を許可できません。</p>
+        <ol style="color: #991b1b; font-size: 0.875rem; margin: 0; padding-left: 1.25rem; line-height: 1.6;">
+          <li>Vercel ダッシュボードでプロジェクトを開く</li>
+          <li><strong>Settings → Environment Variables</strong> へ移動</li>
+          <li><code>AUTHORIZE_PASSWORD</code> を追加し、任意のパスワードを設定</li>
+          <li>プロジェクトを再デプロイ</li>
+        </ol>
+      </div>`
+    }
   </div>
 </body>
 </html>`;
@@ -159,14 +171,16 @@ export async function POST(request: NextRequest) {
   const validationError = validateParams(params);
   if (validationError) return validationError;
 
-  // パスワード検証（AUTHORIZE_PASSWORD 未設定時はスキップ）
+  // パスワード検証（AUTHORIZE_PASSWORD 未設定時はブロック）
   const expectedPassword = process.env.AUTHORIZE_PASSWORD;
-  if (expectedPassword) {
-    const password = params.get("password") ?? "";
-    if (password !== expectedPassword) {
-      const client = clients.get(params.get("client_id")!)!;
-      return renderConsentPage(client.client_name, params, "パスワードが正しくありません");
-    }
+  if (!expectedPassword) {
+    const client = clients.get(params.get("client_id")!)!;
+    return renderConsentPage(client.client_name, params);
+  }
+  const password = params.get("password") ?? "";
+  if (password !== expectedPassword) {
+    const client = clients.get(params.get("client_id")!)!;
+    return renderConsentPage(client.client_name, params, "パスワードが正しくありません");
   }
 
   const redirectUri = params.get("redirect_uri")!;

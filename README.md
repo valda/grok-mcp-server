@@ -48,6 +48,21 @@ Try it: *"Use ask_grok to search for recent AI coding posts on X"*
 - **Setup Dashboard** — The root page (`/`) shows environment variable status, a JWT secret generator, and step-by-step instructions for both Vercel and claude.ai configuration
 - **i18n** — The setup dashboard and OAuth authorization screen detect `Accept-Language` and display in English or Japanese
 
+## Pricing
+
+Each `ask_grok` call incurs xAI API costs: **token fees** + **X Search tool fee** ($0.005/call).
+
+The default model `grok-4-1-fast-non-reasoning` is the most cost-effective option:
+
+| Model | Input | Cached Input | Output |
+|-------|-------|-------------|--------|
+| grok-4-1-fast-non-reasoning (**default**) | $0.20 / 1M tokens | $0.05 / 1M tokens | $0.50 / 1M tokens |
+| grok-4-1-fast-reasoning | $0.20 / 1M tokens | $0.05 / 1M tokens | $0.50 / 1M tokens |
+| grok-4.20-0309-non-reasoning | $2.00 / 1M tokens | $0.20 / 1M tokens | $6.00 / 1M tokens |
+| grok-4.20-0309-reasoning | $2.00 / 1M tokens | $0.20 / 1M tokens | $6.00 / 1M tokens |
+
+See [xAI Models and Pricing](https://docs.x.ai/developers/models) for the latest rates.
+
 ## Local Development
 
 ```bash

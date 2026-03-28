@@ -63,3 +63,4 @@ MCP 側は `Mcp-Session-Id` ヘッダーの送受信・Expose を許可。
 - `Mcp-Session-Id` にアクセストークンを流用し、期限の二重管理を排除（refresh token でアクセストークンを更新すればセッションも自然に延命される）
 - MCP SDK は使わず、薄い JSON-RPC ディスパッチャを自前実装
 - Public client のみ対応（client_secret なし、`token_endpoint_auth_methods_supported: ["none"]`）
+- デフォルトモデルは `grok-4-1-fast-non-reasoning`（最安: input $0.20 / output $0.50 per 1M tokens）。`model` パラメータで上位モデルに切り替え可能

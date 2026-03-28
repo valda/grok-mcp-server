@@ -105,6 +105,7 @@ describe("OAuth フロー一気通貫テスト", () => {
       vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({
+          id: "resp_integration",
           output: [
             {
               type: "message",
@@ -131,6 +132,8 @@ describe("OAuth フロー一気通貫テスト", () => {
       ),
     );
     const callBody = await callRes.json();
-    expect(callBody.result.content[0].text).toBe("Integration test response");
+    const parsed = JSON.parse(callBody.result.content[0].text);
+    expect(parsed.result).toBe("Integration test response");
+    expect(parsed.response_id).toBe("resp_integration");
   });
 });

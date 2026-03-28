@@ -33,6 +33,18 @@ const ASK_GROK_TOOL = {
         description: `Model to use (default: ${DEFAULT_MODEL})`,
         default: DEFAULT_MODEL,
       },
+      instructions: {
+        type: "string" as const,
+        description: "Instructions to control Grok's behavior and response style. Mutually exclusive with previous_response_id.",
+      },
+      previous_response_id: {
+        type: "string" as const,
+        description: "ID of a previous response to continue the conversation. Mutually exclusive with instructions.",
+      },
+      output_schema: {
+        type: "object" as const,
+        description: "JSON Schema for structured output. Grok will return JSON conforming to this schema.",
+      },
     },
     required: ["prompt"],
   },
@@ -103,18 +115,45 @@ function toolResult(id: string | number | null, text: string, isError = false, e
   }, extraHeaders);
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 /** xAI API を呼び出す */
-async function callXai(prompt: string, model: string): Promise<string> {
+async function callXai(options: {
+  prompt: string;
+  model: string;
+  instructions?: string;
+  previous_response_id?: string;
+  output_schema?: object;
+}): Promise<{ text: string; response_id: string }> {
   const apiKey = process.env.XAI_API_KEY;
   if (!apiKey) {
     throw new Error("XAI_API_KEY environment variable is not set");
   }
 
-  const requestBody = {
-    model,
-    input: [{ role: "user", content: prompt }],
+  const requestBody: Record<string, unknown> = {
+    model: options.model,
+    input: [{ role: "user", content: options.prompt }],
     tools: [{ type: "x_search" }],
   };
+
+  if (options.instructions) {
+    requestBody.instructions = options.instructions;
+  }
+  if (options.previous_response_id) {
+    requestBody.previous_response_id = options.previous_response_id;
+  }
+  if (options.output_schema) {
+    requestBody.text = {
+      format: {
+        type: "json_schema",
+        name: "output",
+        schema: options.output_schema,
+        strict: true,
+      },
+    };
+  }
 
   console.log("[xAI] request:", JSON.stringify(requestBody));
 
@@ -141,7 +180,7 @@ async function callXai(prompt: string, model: string): Promise<string> {
     if (item.type === "message" && Array.isArray(item.content)) {
       for (const block of item.content) {
         if (block.type === "output_text" && block.text) {
-          return block.text;
+          return { text: block.text, response_id: data.id };
         }
       }
     }
@@ -205,16 +244,43 @@ export async function POST(request: NextRequest) {
       return jsonRpcError(id, -32602, `Unknown tool: ${params?.name}`);
     }
 
-    const prompt = params.arguments?.prompt;
+    const args = params.arguments ?? {};
+
+    const prompt = args.prompt;
     if (!prompt || typeof prompt !== "string") {
       return toolResult(id, "prompt is required", true, headers);
     }
 
-    const model = params.arguments?.model || DEFAULT_MODEL;
+    if (args.model != null && typeof args.model !== "string") {
+      return toolResult(id, "model must be a string", true, headers);
+    }
+    const model = args.model || DEFAULT_MODEL;
+
+    if (args.instructions != null && typeof args.instructions !== "string") {
+      return toolResult(id, "instructions must be a string", true, headers);
+    }
+
+    if (args.previous_response_id != null && typeof args.previous_response_id !== "string") {
+      return toolResult(id, "previous_response_id must be a string", true, headers);
+    }
+
+    if (args.output_schema != null && !isPlainObject(args.output_schema)) {
+      return toolResult(id, "output_schema must be an object", true, headers);
+    }
+
+    if (args.instructions && args.previous_response_id) {
+      return toolResult(id, "instructions and previous_response_id are mutually exclusive", true, headers);
+    }
 
     try {
-      const result = await callXai(prompt, model);
-      return toolResult(id, result, false, headers);
+      const result = await callXai({
+        prompt,
+        model,
+        instructions: args.instructions,
+        previous_response_id: args.previous_response_id,
+        output_schema: args.output_schema,
+      });
+      return toolResult(id, JSON.stringify({ result: result.text, response_id: result.response_id }), false, headers);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       return toolResult(id, message, true, headers);

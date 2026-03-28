@@ -68,6 +68,7 @@ describe("POST /api/mcp", () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({
+          id: "resp_123",
           output: [
             {
               type: "message",
@@ -87,7 +88,9 @@ describe("POST /api/mcp", () => {
 
       const res = await POST(req);
       const body = await res.json();
-      expect(body.result.content[0].text).toBe("Grok says hello");
+      const parsed = JSON.parse(body.result.content[0].text);
+      expect(parsed.result).toBe("Grok says hello");
+      expect(parsed.response_id).toBe("resp_123");
       expect(mockFetch).toHaveBeenCalledWith(
         "https://api.x.ai/v1/responses",
         expect.objectContaining({

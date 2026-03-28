@@ -42,8 +42,11 @@ Try it: *"Use ask_grok to search for recent AI coding posts on X"*
 
 ## Features
 
-- **Setup Dashboard** — The root page (`/`) shows environment variable status, a JWT secret generator, and step-by-step instructions for both Vercel and claude.ai configuration.
-- **i18n** — The setup dashboard and OAuth authorization screen detect `Accept-Language` and display in English or Japanese.
+- **Real-time X Search** — Search posts, trends, and public opinion on X via Grok's X Search
+- **Structured Output** — Pass a JSON Schema via `output_schema` to extract structured data (sentiment, topics, reactions, etc.)
+- **Multi-turn Chaining** — Use `previous_response_id` to build follow-up searches with context (drill-down, filtering, summarization)
+- **Setup Dashboard** — The root page (`/`) shows environment variable status, a JWT secret generator, and step-by-step instructions for both Vercel and claude.ai configuration
+- **i18n** — The setup dashboard and OAuth authorization screen detect `Accept-Language` and display in English or Japanese
 
 ## Local Development
 

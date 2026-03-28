@@ -20,6 +20,7 @@ export const maxDuration = 60;
 
 const XAI_API_URL = "https://api.x.ai/v1/responses";
 const DEFAULT_MODEL = "grok-4-1-fast-non-reasoning";
+const REASONING_MODEL = "grok-4-1-fast-reasoning";
 
 const ASK_GROK_TOOL = {
   name: "ask_grok",
@@ -70,7 +71,7 @@ The result field in the response will contain the JSON string.`,
       },
       model: {
         type: "string" as const,
-        description: `Model to use (default: ${DEFAULT_MODEL})`,
+        description: `Model to use. Prefer default for speed. Use ${REASONING_MODEL} when the query involves comparison, causality, or multiple logical steps. Same price.`,
         default: DEFAULT_MODEL,
       },
     },

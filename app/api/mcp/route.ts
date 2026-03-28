@@ -23,27 +23,55 @@ const DEFAULT_MODEL = "grok-4-1-fast-non-reasoning";
 
 const ASK_GROK_TOOL = {
   name: "ask_grok",
-  description: "Search and retrieve posts from X (formerly Twitter). Uses Grok's X Search to fetch real-time posts and trends from X.",
+  description: `Search X (formerly Twitter) in real-time using Grok's X Search.
+Supports structured output via JSON Schema and multi-turn chaining via response IDs.
+
+Use this tool when you need:
+- Real-time posts, trends, or public opinion from X
+- Structured extraction of X data (topics, sentiment, reactions, etc.)
+- Follow-up searches that build on a previous result (drill-down, filtering, summarization)
+
+Workflow for deep research:
+1. First call: use output_schema to get structured data + capture response_id
+2. Follow-up calls: pass previous_response_id to continue with context`,
   inputSchema: {
     type: "object" as const,
     properties: {
-      prompt: { type: "string" as const, description: "Search query or question (e.g. \"latest posts about AI coding\", \"what is trending on X right now\")" },
+      prompt: {
+        type: "string" as const,
+        description: `Search query or question about X posts/trends.
+Examples:
+- "latest posts about AI coding"
+- "what is trending on X right now"
+- "public reaction to Anthropic's latest announcement"`,
+      },
+      instructions: {
+        type: "string" as const,
+        description: `System-level instructions for Grok's behavior and output style.
+Use to specify language, tone, or response format constraints.
+Examples:
+- "Respond in Japanese"
+- "Focus on Japanese users' opinions only"
+- "Be concise, max 2 sentences per item"
+Mutually exclusive with previous_response_id.`,
+      },
+      previous_response_id: {
+        type: "string" as const,
+        description: `Response ID from a previous ask_grok call.
+Use for follow-up searches that continue from prior context — e.g. drill down into a specific topic, filter results, or ask a follow-up question.
+The response_id is returned in every ask_grok result.
+Mutually exclusive with instructions.`,
+      },
+      output_schema: {
+        type: "object" as const,
+        description: `JSON Schema for structured output. When specified, Grok returns JSON conforming to this schema.
+Use enums to constrain values and avoid hallucination (e.g. sentiment: ["positive","negative","neutral","mixed"]).
+The result field in the response will contain the JSON string.`,
+      },
       model: {
         type: "string" as const,
         description: `Model to use (default: ${DEFAULT_MODEL})`,
         default: DEFAULT_MODEL,
-      },
-      instructions: {
-        type: "string" as const,
-        description: "Instructions to control Grok's behavior and response style. Mutually exclusive with previous_response_id.",
-      },
-      previous_response_id: {
-        type: "string" as const,
-        description: "ID of a previous response to continue the conversation. Mutually exclusive with instructions.",
-      },
-      output_schema: {
-        type: "object" as const,
-        description: "JSON Schema for structured output. Grok will return JSON conforming to this schema.",
       },
     },
     required: ["prompt"],

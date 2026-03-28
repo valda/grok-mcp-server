@@ -130,23 +130,11 @@ function renderConsentPage(clientName: string, params: URLSearchParams, locale: 
         ? `<input type="hidden" name="${key}" value="${escapeHtml(value)}" />`
         : "";
     })
-    .join("\n        ");
+    .join("\n            ");
 
   const passwordConfigured = !!process.env.AUTHORIZE_PASSWORD;
 
-  const passwordField = passwordConfigured
-    ? `<div style="margin-bottom: 1rem; text-align: left;">
-          <label for="password" style="display: block; font-size: 0.875rem; color: #555; margin-bottom: 0.25rem;">${escapeHtml(t.passwordLabel)}</label>
-          <input type="password" id="password" name="password" required style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box;" />
-        </div>`
-    : "";
-
   const displayError = errorMessage ?? (errorMessage === undefined ? undefined : errorMessage);
-  const errorHtml = displayError
-    ? `<p style="color: #dc2626; font-size: 0.875rem; margin: 0 0 1rem;">${escapeHtml(displayError)}</p>`
-    : "";
-
-  const setupStepsHtml = t.setupSteps.map((step) => `<li>${step}</li>`).join("\n          ");
 
   const html = `<!DOCTYPE html>
 <html lang="${locale}">
@@ -154,35 +142,332 @@ function renderConsentPage(clientName: string, params: URLSearchParams, locale: 
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>${escapeHtml(t.title)}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
-    body { font-family: system-ui, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #f5f5f5; }
-    .card { background: #fff; border-radius: 12px; padding: 2rem; max-width: 400px; width: 100%; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center; }
-    h1 { font-size: 1.25rem; margin: 0 0 1rem; }
-    p { color: #555; margin: 0.5rem 0 1.5rem; }
-    .client-name { font-weight: bold; color: #111; }
-    button { background: #2563eb; color: #fff; border: none; border-radius: 8px; padding: 0.75rem 2rem; font-size: 1rem; cursor: pointer; }
-    button:hover { background: #1d4ed8; }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+    :root {
+      --bg: #0a0a0b;
+      --bg-subtle: #111113;
+      --surface: rgba(255,255,255,0.04);
+      --surface-border: rgba(255,255,255,0.08);
+      --surface-hover: rgba(255,255,255,0.06);
+      --text: #e8e6e3;
+      --text-muted: #8a877f;
+      --text-dim: #5c5a54;
+      --accent: #d4a04a;
+      --accent-hover: #e2b35e;
+      --accent-glow: rgba(212,160,74,0.15);
+      --error: #e05252;
+      --error-bg: rgba(224,82,82,0.08);
+      --error-border: rgba(224,82,82,0.2);
+      --warning-bg: rgba(212,160,74,0.06);
+      --warning-border: rgba(212,160,74,0.15);
+      --radius: 16px;
+      --radius-sm: 10px;
+      --font-display: 'DM Serif Display', Georgia, serif;
+      --font-body: 'Outfit', system-ui, sans-serif;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f4f2ee;
+        --bg-subtle: #eae7e1;
+        --surface: rgba(255,255,255,0.7);
+        --surface-border: rgba(0,0,0,0.08);
+        --surface-hover: rgba(255,255,255,0.9);
+        --text: #1a1917;
+        --text-muted: #6b6860;
+        --text-dim: #9e9a91;
+        --accent: #b8872e;
+        --accent-hover: #a07626;
+        --accent-glow: rgba(184,135,46,0.12);
+        --error: #c93c3c;
+        --error-bg: rgba(201,60,60,0.06);
+        --error-border: rgba(201,60,60,0.15);
+        --warning-bg: rgba(184,135,46,0.06);
+        --warning-border: rgba(184,135,46,0.12);
+      }
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Noise texture overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      opacity: 0.35;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+      background-size: 256px 256px;
+    }
+
+    /* Subtle ambient glow */
+    body::after {
+      content: '';
+      position: fixed;
+      top: -40%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: var(--accent-glow);
+      filter: blur(120px);
+      pointer-events: none;
+    }
+
+    .card {
+      position: relative;
+      background: var(--surface);
+      backdrop-filter: blur(40px) saturate(1.4);
+      -webkit-backdrop-filter: blur(40px) saturate(1.4);
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius);
+      padding: 2.5rem 2rem 2rem;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      animation: cardIn 0.6s cubic-bezier(0.16,1,0.3,1) both;
+    }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(24px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Shield icon */
+    .icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 1.25rem;
+      border-radius: 12px;
+      background: var(--accent-glow);
+      border: 1px solid rgba(212,160,74,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: iconIn 0.6s 0.15s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    @keyframes iconIn {
+      from { opacity: 0; transform: scale(0.8); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .icon svg { width: 24px; height: 24px; color: var(--accent); }
+
+    h1 {
+      font-family: var(--font-display);
+      font-weight: 400;
+      font-size: 1.5rem;
+      line-height: 1.3;
+      letter-spacing: -0.01em;
+      margin-bottom: 0.5rem;
+      animation: textIn 0.6s 0.2s cubic-bezier(0.16,1,0.3,1) both;
+    }
+
+    @keyframes textIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      font-weight: 300;
+      color: var(--text-muted);
+      margin-bottom: 1.75rem;
+      line-height: 1.5;
+      animation: textIn 0.6s 0.25s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    .client-name {
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--surface-border);
+      margin: 0 -2rem 1.5rem;
+      animation: textIn 0.6s 0.3s cubic-bezier(0.16,1,0.3,1) both;
+    }
+
+    /* Form elements */
+    form {
+      animation: textIn 0.6s 0.35s cubic-bezier(0.16,1,0.3,1) both;
+    }
+
+    .field {
+      text-align: left;
+      margin-bottom: 1.25rem;
+    }
+    .field label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.4rem;
+    }
+    .field input[type="password"] {
+      width: 100%;
+      padding: 0.7rem 0.9rem;
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      font-weight: 400;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .field input[type="password"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    .field input[type="password"]::placeholder {
+      color: var(--text-dim);
+      font-weight: 300;
+    }
+
+    .error-msg {
+      background: var(--error-bg);
+      border: 1px solid var(--error-border);
+      border-radius: var(--radius-sm);
+      padding: 0.6rem 0.8rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.85rem;
+      color: var(--error);
+      text-align: left;
+      animation: shake 0.4s cubic-bezier(0.36,0.07,0.19,0.97);
+    }
+    @keyframes shake {
+      10%,90% { transform: translateX(-1px); }
+      20%,80% { transform: translateX(2px); }
+      30%,50%,70% { transform: translateX(-3px); }
+      40%,60% { transform: translateX(3px); }
+    }
+
+    button[type="submit"] {
+      width: 100%;
+      padding: 0.75rem 1.5rem;
+      background: var(--accent);
+      color: #0a0a0b;
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+    }
+    button[type="submit"]:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+    button[type="submit"]:active {
+      transform: translateY(0);
+    }
+
+    /* Setup incomplete warning */
+    .warning-box {
+      background: var(--warning-bg);
+      border: 1px solid var(--warning-border);
+      border-radius: var(--radius-sm);
+      padding: 1.25rem;
+      text-align: left;
+      animation: textIn 0.6s 0.35s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    .warning-box .warning-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--accent);
+      margin-bottom: 0.4rem;
+    }
+    .warning-box .warning-desc {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 0.75rem;
+    }
+    .warning-box .warning-desc code {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      padding: 0.1em 0.35em;
+      border-radius: 4px;
+      font-size: 0.8rem;
+    }
+    .warning-box ol {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      padding-left: 1.2rem;
+      line-height: 1.7;
+    }
+    .warning-box ol code {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      padding: 0.1em 0.35em;
+      border-radius: 4px;
+      font-size: 0.78rem;
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: 1.5rem;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      letter-spacing: 0.04em;
+      animation: textIn 0.6s 0.45s cubic-bezier(0.16,1,0.3,1) both;
+    }
   </style>
 </head>
 <body>
   <div class="card">
+    <div class="icon">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+      </svg>
+    </div>
     <h1>${escapeHtml(t.heading)}</h1>
-    <p>${t.requesting(escapeHtml(clientName))}</p>
-    ${errorHtml}
+    <p class="subtitle">${t.requesting(escapeHtml(clientName))}</p>
+    <div class="divider"></div>
+    ${displayError
+      ? `<div class="error-msg">${escapeHtml(displayError)}</div>`
+      : ""}
     ${passwordConfigured
       ? `<form method="POST" action="/api/oauth/authorize">
-        ${hiddenInputs}
-        ${passwordField}
-        <button type="submit">${escapeHtml(t.approve)}</button>
-    </form>`
-      : `<div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 1rem; text-align: left;">
-        <p style="color: #991b1b; font-weight: bold; margin: 0 0 0.5rem;">${t.setupIncomplete}</p>
-        <p style="color: #991b1b; margin: 0 0 0.75rem; font-size: 0.875rem;">${t.setupDesc}</p>
-        <ol style="color: #991b1b; font-size: 0.875rem; margin: 0; padding-left: 1.25rem; line-height: 1.6;">
-          ${setupStepsHtml}
-        </ol>
-      </div>`
+            ${hiddenInputs}
+            <div class="field">
+              <label for="password">${escapeHtml(t.passwordLabel)}</label>
+              <input type="password" id="password" name="password" required placeholder="••••••••" autocomplete="current-password" />
+            </div>
+            <button type="submit">${escapeHtml(t.approve)}</button>
+          </form>`
+      : `<div class="warning-box">
+            <div class="warning-title">${t.setupIncomplete}</div>
+            <p class="warning-desc">${t.setupDesc}</p>
+            <ol>
+              ${t.setupSteps.map((step) => `<li>${step}</li>`).join("\n              ")}
+            </ol>
+          </div>`
     }
+    <div class="footer">Grok MCP Server &middot; OAuth 2.1</div>
   </div>
 </body>
 </html>`;

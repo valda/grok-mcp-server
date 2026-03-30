@@ -29,31 +29,40 @@ Supports structured output via JSON Schema and multi-turn chaining via response 
 
 Use this tool when you need:
 - Real-time posts, trends, or public opinion from X
+- Fetching a specific post and its thread/replies by URL
 - Structured extraction of X data (topics, sentiment, reactions, etc.)
 - Follow-up searches that build on a previous result (drill-down, filtering, summarization)
 
 Workflow for deep research:
 1. First call: use output_schema to get structured data + capture response_id
-2. Follow-up calls: pass previous_response_id to continue with context`,
+2. Follow-up calls: pass previous_response_id to continue with context
+
+Workflow for thread extraction:
+1. Pass the post URL as prompt with output_schema to get structured thread data (original post + top replies ranked by engagement)
+2. Use the returned structured data for analysis, commentary, or conversation`,
   inputSchema: {
     type: "object" as const,
     properties: {
       prompt: {
         type: "string" as const,
         description: `Search query or question about X posts/trends.
+Can also be a direct URL to an X post to fetch its content and thread.
 Examples:
 - "latest posts about AI coding"
 - "what is trending on X right now"
-- "public reaction to Anthropic's latest announcement"`,
+- "public reaction from Japanese users to Anthropic's latest announcement"
+- "https://x.com/username/status/123456789 — fetch this post and its replies"`,
       },
       instructions: {
         type: "string" as const,
         description: `System-level instructions for Grok's behavior and output style.
-Use to specify language, tone, or response format constraints.
+Use to specify language, tone, or formatting constraints.
+Controls HOW Grok responds, not WHAT to search (that belongs in prompt).
 Examples:
 - "Respond in Japanese"
-- "Focus on Japanese users' opinions only"
 - "Be concise, max 2 sentences per item"
+- "Return only a JSON-ready summary with no commentary"
+- "Quote post text exactly and do not infer missing facts"
 Mutually exclusive with previous_response_id.`,
       },
       previous_response_id: {
@@ -66,8 +75,11 @@ Mutually exclusive with instructions.`,
       output_schema: {
         type: "object" as const,
         description: `JSON Schema for structured output. When specified, Grok returns JSON conforming to this schema.
-Use enums to constrain values and avoid hallucination (e.g. sentiment: ["positive","negative","neutral","mixed"]).
-The result field in the response will contain the JSON string.`,
+Use enums to constrain categorical values and reduce hallucination.
+The result field in the response will contain the JSON string.
+
+Thread extraction example schema:
+{ "type": "object", "properties": { "original_post": { "type": "object", "properties": { "author": { "type": "string" }, "content": { "type": "string" }, "likes": { "type": "integer" }, "views": { "type": "integer" } }, "required": ["author", "content"], "additionalProperties": false }, "top_replies": { "type": "array", "items": { "type": "object", "properties": { "author": { "type": "string" }, "content": { "type": "string" }, "likes": { "type": "integer" }, "rank": { "type": "integer" }, "sentiment": { "type": "string", "enum": ["positive", "negative", "neutral", "mixed"] } }, "required": ["author", "content", "likes", "rank", "sentiment"], "additionalProperties": false } } }, "required": ["original_post", "top_replies"], "additionalProperties": false }`,
       },
       model: {
         type: "string" as const,

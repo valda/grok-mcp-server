@@ -16,6 +16,7 @@ import {
 } from "../oauth/jwt";
 import { mcpCorsHeaders, mcpOptionsResponse } from "./cors";
 import { X_SEARCH_TOOL, handleXSearchCall } from "@/lib/tools";
+import pkg from "@/package.json";
 
 export const maxDuration = 60;
 
@@ -109,7 +110,7 @@ export async function POST(request: NextRequest) {
       id,
       {
         protocolVersion: "2025-03-26",
-        serverInfo: { name: "grok-mcp-server", version: "0.1.0" },
+        serverInfo: { name: "grok-mcp-server", version: pkg.version },
         capabilities: { tools: {} },
       },
       sessionHeaders(auth.token),

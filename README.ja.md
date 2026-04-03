@@ -99,6 +99,19 @@ npm run dev
 
 開発サーバーが `http://localhost:3000` で起動する。
 
+### CLI（stdio）開発
+
+```bash
+npm run build:cli        # dist/cli.js をビルド
+npm test                 # 全テスト実行
+```
+
+stdio サーバーをローカルでテスト:
+
+```bash
+XAI_API_KEY=your-key node dist/cli.js
+```
+
 ## アーキテクチャ
 
 - **OAuth 2.1** — PKCE 必須、Dynamic Client Registration 対応

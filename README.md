@@ -101,6 +101,19 @@ npm run dev
 
 The dev server starts at `http://localhost:3000`.
 
+### CLI (stdio) development
+
+```bash
+npm run build:cli        # Build dist/cli.js
+npm test                 # Run all tests
+```
+
+Test the stdio server locally:
+
+```bash
+XAI_API_KEY=your-key node dist/cli.js
+```
+
 ## Architecture
 
 - **OAuth 2.1** — PKCE required, Dynamic Client Registration supported

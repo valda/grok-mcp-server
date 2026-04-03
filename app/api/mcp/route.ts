@@ -2,7 +2,7 @@
  * MCP サーバー本体 — POST-only JSON-RPC endpoint
  *
  * claude.ai からの MCP リクエストを受け付け、
- * Grok API（xAI）へプロキシする `ask_grok` ツールを公開する。
+ * Grok API（xAI）へプロキシする `x_search` ツールを公開する。
  *
  * Transport: Vercel Serverless 前提のため Streamable HTTP (SSE) は不採用。
  * セッション管理: Mcp-Session-Id は initialize 済みマーカーとして扱い、
@@ -15,81 +15,9 @@ import {
   type AccessTokenPayload,
 } from "../oauth/jwt";
 import { mcpCorsHeaders, mcpOptionsResponse } from "./cors";
+import { X_SEARCH_TOOL, handleXSearchCall } from "@/lib/tools";
 
 export const maxDuration = 60;
-
-const XAI_API_URL = "https://api.x.ai/v1/responses";
-const DEFAULT_MODEL = "grok-4-1-fast-non-reasoning";
-const REASONING_MODEL = "grok-4-1-fast-reasoning";
-
-const ASK_GROK_TOOL = {
-  name: "ask_grok",
-  description: `Search X (formerly Twitter) in real-time using Grok's X Search.
-Supports structured output via JSON Schema and multi-turn chaining via response IDs.
-
-Use this tool when you need:
-- Real-time posts, trends, or public opinion from X
-- Fetching a specific post and its thread/replies by URL
-- Structured extraction of X data (topics, sentiment, reactions, etc.)
-- Follow-up searches that build on a previous result (drill-down, filtering, summarization)
-
-Workflow for deep research:
-1. First call: use output_schema to get structured data + capture response_id
-2. Follow-up calls: pass previous_response_id to continue with context
-
-Workflow for thread extraction:
-1. Pass the post URL as prompt with output_schema to get structured thread data (original post + top replies ranked by engagement)
-2. Use the returned structured data for analysis, commentary, or conversation`,
-  inputSchema: {
-    type: "object" as const,
-    properties: {
-      prompt: {
-        type: "string" as const,
-        description: `Search query or question about X posts/trends.
-Can also be a direct URL to an X post to fetch its content and thread.
-Examples:
-- "latest posts about AI coding"
-- "what is trending on X right now"
-- "public reaction from Japanese users to Anthropic's latest announcement"
-- "https://x.com/username/status/123456789 — fetch this post and its replies"`,
-      },
-      instructions: {
-        type: "string" as const,
-        description: `System-level instructions for Grok's behavior and output style.
-Use to specify language, tone, or formatting constraints.
-Controls HOW Grok responds, not WHAT to search (that belongs in prompt).
-Examples:
-- "Respond in Japanese"
-- "Be concise, max 2 sentences per item"
-- "Return only a JSON-ready summary with no commentary"
-- "Quote post text exactly and do not infer missing facts"
-Mutually exclusive with previous_response_id.`,
-      },
-      previous_response_id: {
-        type: "string" as const,
-        description: `Response ID from a previous ask_grok call.
-Use for follow-up searches that continue from prior context — e.g. drill down into a specific topic, filter results, or ask a follow-up question.
-The response_id is returned in every ask_grok result.
-Mutually exclusive with instructions.`,
-      },
-      output_schema: {
-        type: "object" as const,
-        description: `JSON Schema for structured output. When specified, Grok returns JSON conforming to this schema.
-Use enums to constrain categorical values and reduce hallucination.
-The result field in the response will contain the JSON string.
-
-Thread extraction example schema:
-{ "type": "object", "properties": { "original_post": { "type": "object", "properties": { "author": { "type": "string" }, "content": { "type": "string" }, "likes": { "type": "integer" }, "views": { "type": "integer" } }, "required": ["author", "content"], "additionalProperties": false }, "top_replies": { "type": "array", "items": { "type": "object", "properties": { "author": { "type": "string" }, "content": { "type": "string" }, "likes": { "type": "integer" }, "rank": { "type": "integer" }, "sentiment": { "type": "string", "enum": ["positive", "negative", "neutral", "mixed"] } }, "required": ["author", "content", "likes", "rank", "sentiment"], "additionalProperties": false } } }, "required": ["original_post", "top_replies"], "additionalProperties": false }`,
-      },
-      model: {
-        type: "string" as const,
-        description: `Model to use. Prefer default for speed. Use ${REASONING_MODEL} when the query involves comparison, causality, or multiple logical steps. Same price.`,
-        default: DEFAULT_MODEL,
-      },
-    },
-    required: ["prompt"],
-  },
-};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -156,80 +84,6 @@ function toolResult(id: string | number | null, text: string, isError = false, e
   }, extraHeaders);
 }
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-/** xAI API を呼び出す */
-async function callXai(options: {
-  prompt: string;
-  model: string;
-  instructions?: string;
-  previous_response_id?: string;
-  output_schema?: object;
-}): Promise<{ text: string; response_id: string }> {
-  const apiKey = process.env.XAI_API_KEY;
-  if (!apiKey) {
-    throw new Error("XAI_API_KEY environment variable is not set");
-  }
-
-  const requestBody: Record<string, unknown> = {
-    model: options.model,
-    input: [{ role: "user", content: options.prompt }],
-    tools: [{ type: "x_search" }],
-  };
-
-  if (options.instructions) {
-    requestBody.instructions = options.instructions;
-  }
-  if (options.previous_response_id) {
-    requestBody.previous_response_id = options.previous_response_id;
-  }
-  if (options.output_schema) {
-    requestBody.text = {
-      format: {
-        type: "json_schema",
-        name: "output",
-        schema: options.output_schema,
-        strict: true,
-      },
-    };
-  }
-
-  console.log("[xAI] request:", JSON.stringify(requestBody));
-
-  const response = await fetch(XAI_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(requestBody),
-  });
-
-  if (!response.ok) {
-    const body = await response.text();
-    console.log("[xAI] error:", response.status, body);
-    throw new Error(`xAI API error (${response.status}): ${body}`);
-  }
-
-  const data = await response.json();
-  console.log("[xAI] response:", JSON.stringify(data));
-
-  // output 配列から type: "message" の content を取り出す
-  for (const item of data.output ?? []) {
-    if (item.type === "message" && Array.isArray(item.content)) {
-      for (const block of item.content) {
-        if (block.type === "output_text" && block.text) {
-          return { text: block.text, response_id: data.id };
-        }
-      }
-    }
-  }
-
-  throw new Error("No text content in xAI API response");
-}
-
 // ---------------------------------------------------------------------------
 // Route Handlers
 // ---------------------------------------------------------------------------
@@ -276,56 +130,18 @@ export async function POST(request: NextRequest) {
 
   // --- tools/list ---
   if (method === "tools/list") {
-    return jsonRpcResult(id, { tools: [ASK_GROK_TOOL] }, headers);
+    return jsonRpcResult(id, { tools: [X_SEARCH_TOOL] }, headers);
   }
 
   // --- tools/call ---
   if (method === "tools/call") {
-    if (params?.name !== "ask_grok") {
+    if (params?.name !== "x_search") {
       return jsonRpcError(id, -32602, `Unknown tool: ${params?.name}`);
     }
 
     const args = params.arguments ?? {};
-
-    const prompt = args.prompt;
-    if (!prompt || typeof prompt !== "string") {
-      return toolResult(id, "prompt is required", true, headers);
-    }
-
-    if (args.model != null && typeof args.model !== "string") {
-      return toolResult(id, "model must be a string", true, headers);
-    }
-    const model = args.model || DEFAULT_MODEL;
-
-    if (args.instructions != null && typeof args.instructions !== "string") {
-      return toolResult(id, "instructions must be a string", true, headers);
-    }
-
-    if (args.previous_response_id != null && typeof args.previous_response_id !== "string") {
-      return toolResult(id, "previous_response_id must be a string", true, headers);
-    }
-
-    if (args.output_schema != null && !isPlainObject(args.output_schema)) {
-      return toolResult(id, "output_schema must be an object", true, headers);
-    }
-
-    if (args.instructions && args.previous_response_id) {
-      return toolResult(id, "instructions and previous_response_id are mutually exclusive", true, headers);
-    }
-
-    try {
-      const result = await callXai({
-        prompt,
-        model,
-        instructions: args.instructions,
-        previous_response_id: args.previous_response_id,
-        output_schema: args.output_schema,
-      });
-      return toolResult(id, JSON.stringify({ result: result.text, response_id: result.response_id }), false, headers);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      return toolResult(id, message, true, headers);
-    }
+    const result = await handleXSearchCall(args);
+    return toolResult(id, result.content[0].text, result.isError ?? false, headers);
   }
 
   // --- 不明メソッド ---

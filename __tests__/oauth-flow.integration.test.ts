@@ -96,7 +96,7 @@ describe("OAuth フロー一気通貫テスト", () => {
       ),
     );
     const listBody = await listRes.json();
-    expect(listBody.result.tools[0].name).toBe("ask_grok");
+    expect(listBody.result.tools[0].name).toBe("x_search");
 
     // Step 7: tools/call（xAI API モック）
     process.env.XAI_API_KEY = "test-key";
@@ -123,7 +123,7 @@ describe("OAuth フロー一気通貫テスト", () => {
           jsonrpc: "2.0",
           id: 3,
           method: "tools/call",
-          params: { name: "ask_grok", arguments: { prompt: "hello" } },
+          params: { name: "x_search", arguments: { prompt: "hello" } },
         },
         {
           Authorization: `Bearer ${access_token}`,

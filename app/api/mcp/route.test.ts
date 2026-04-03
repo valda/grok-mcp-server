@@ -43,14 +43,14 @@ describe("POST /api/mcp", () => {
   });
 
   describe("tools/list", () => {
-    it("ask_grok ツール定義を返す", async () => {
+    it("x_search ツール定義を返す", async () => {
       const req = mcpRequest("tools/list", {}, token, {
         "Mcp-Session-Id": token,
       });
       const res = await POST(req);
       const body = await res.json();
       expect(body.result.tools).toHaveLength(1);
-      expect(body.result.tools[0].name).toBe("ask_grok");
+      expect(body.result.tools[0].name).toBe("x_search");
     });
 
     it("Mcp-Session-Id なしで -32000 エラーを返す", async () => {
@@ -61,7 +61,7 @@ describe("POST /api/mcp", () => {
     });
   });
 
-  describe("tools/call ask_grok", () => {
+  describe("tools/call x_search", () => {
     it("xAI API を呼び出して結果を返す", async () => {
       process.env.XAI_API_KEY = "test-xai-key";
 
@@ -81,7 +81,7 @@ describe("POST /api/mcp", () => {
 
       const req = mcpRequest(
         "tools/call",
-        { name: "ask_grok", arguments: { prompt: "test query" } },
+        { name: "x_search", arguments: { prompt: "test query" } },
         token,
         { "Mcp-Session-Id": token },
       );
@@ -113,7 +113,7 @@ describe("POST /api/mcp", () => {
 
       const req = mcpRequest(
         "tools/call",
-        { name: "ask_grok", arguments: { prompt: "test" } },
+        { name: "x_search", arguments: { prompt: "test" } },
         token,
         { "Mcp-Session-Id": token },
       );

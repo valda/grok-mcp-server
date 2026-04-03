@@ -33,7 +33,7 @@ No installation required. Add to your MCP client configuration:
 
 Get your API key at [console.x.ai](https://console.x.ai).
 
-### Option B: Deploy to Vercel (claude.ai web)
+### Option B: Deploy to Vercel (claude.ai web / Claude Code)
 
 #### 1. Deploy to Vercel
 
@@ -51,6 +51,8 @@ After deployment, open your project's root URL to verify the setup. The **setup 
 4. Click **Add** — the OAuth authorization flow will start
 5. Enter the password you set in `AUTHORIZE_PASSWORD` and click **Allow**
 6. The `x_search` tool is now available in your chats!
+
+Once registered on claude.ai, the remote MCP server is also available from **Claude Code** (CLI / IDE extensions) under the same account.
 
 Try it: *"Use x_search to search for recent AI coding posts on X"*
 

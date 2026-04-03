@@ -2,16 +2,25 @@
   "name": "grok-mcp-server",
   "version": "0.1.0",
   "description": "MCP server that proxies to xAI Grok API for searching X (formerly Twitter)",
-  "keywords": ["mcp", "mcp-server", "xai", "grok", "x-search", "twitter"],
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "xai",
+    "grok",
+    "x-search",
+    "twitter"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/valda/grok-mcp-server.git"
+    "url": "git+https://github.com/valda/grok-mcp-server.git"
   },
   "bin": {
     "grok-mcp-server": "dist/cli.js"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",

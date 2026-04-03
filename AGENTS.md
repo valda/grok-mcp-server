@@ -10,6 +10,7 @@ Next.js App Router の Route Handlers として OAuth 2.1 認証フロー + MCP 
 
 - `npm run dev` — 開発サーバー起動（http://localhost:3000）
 - `npm run build` — プロダクションビルド
+- `npm run build:cli` — CLI バンドルビルド（`dist/cli.js` 生成）
 - `npm test` — Vitest でユニット・インテグレーションテスト実行
 - `npx tsc --noEmit` — 型チェック
 
@@ -23,6 +24,20 @@ Next.js App Router の Route Handlers として OAuth 2.1 認証フロー + MCP 
 | `BASE_URL` | サーバーの公開URL（任意。未設定時は `VERCEL_PROJECT_PRODUCTION_URL` → `VERCEL_URL` → `http://localhost:3000` の順にフォールバック） |
 
 ## Architecture
+
+### 共通モジュール（`lib/`）
+
+- `lib/xai.ts` — xAI Responses API 呼び出し（`callXai()`、モデル定数）
+- `lib/tools.ts` — `X_SEARCH_TOOL` 定義と `handleXSearchCall()` ハンドラ
+
+Remote 版（`app/api/mcp/route.ts`）と stdio 版（`cli/index.ts`）の両方から利用。
+
+### stdio MCP サーバー（`cli/index.ts`）
+
+- `@modelcontextprotocol/sdk` の `McpServer` + `StdioServerTransport` を使用
+- OAuth 不要、`XAI_API_KEY` 環境変数のみ
+- `npx grok-mcp-server` で実行可能
+- tsup で `dist/cli.js` にバンドル
 
 ### OAuth 2.1 フロー（`app/api/oauth/`）
 
@@ -44,7 +59,7 @@ Client → /.well-known/oauth-authorization-server  (メタデータ取得)
 - **POST-only** の JSON-RPC endpoint（Vercel Serverless の制約で SSE 非対応）
 - 認証は Bearer access token で行い、`Mcp-Session-Id` は initialize 済みマーカーとして扱う
 - `initialize` → アクセストークンを `Mcp-Session-Id` ヘッダーに返却
-- `tools/list` → `ask_grok` ツール定義を返却
+- `tools/list` → `x_search` ツール定義を返却
 - `tools/call` → xAI API (`https://api.x.ai/v1/responses`) へプロキシ
   - `prompt`: 検索クエリ（必須）
   - `instructions`: Grok の振る舞い・出力スタイル制御（`previous_response_id` と排他）
@@ -61,6 +76,7 @@ MCP 側は `Mcp-Session-Id` ヘッダーの送受信・Expose を許可。
 
 - Vercel Serverless 前提のため、すべてのサーバー状態を JWT に埋め込むステートレス設計
 - `Mcp-Session-Id` にアクセストークンを流用し、期限の二重管理を排除（refresh token でアクセストークンを更新すればセッションも自然に延命される）
-- MCP SDK は使わず、薄い JSON-RPC ディスパッチャを自前実装
+- Remote 版は自前 JSON-RPC（Vercel Serverless 向け最適化）、stdio 版は MCP SDK（標準準拠）と使い分け
+- stdio 版は MCP SDK（`@modelcontextprotocol/sdk`）を使用し、標準的な MCP プロトコル実装に準拠
 - Public client のみ対応（client_secret なし、`token_endpoint_auth_methods_supported: ["none"]`）
 - デフォルトモデルは `grok-4-1-fast-non-reasoning`（最安: input $0.20 / output $0.50 per 1M tokens）。比較・因果関係・複数ステップの推論が必要なクエリには `grok-4-1-fast-reasoning`（同価格）を `model` パラメータで指定可能

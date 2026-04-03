@@ -55,7 +55,7 @@ const messages = {
       "左メニューから <strong>コネクタ</strong> を選択",
       '<strong>カスタムコネクタを追加</strong> をクリックし、<strong>名前</strong>に "grok-mcp-server"、<strong>リモートMCPサーバーURL</strong>に上記の URL を入力',
       "認可画面が表示されたら <code>AUTHORIZE_PASSWORD</code> に設定したパスワードを入力して許可",
-      "チャットで <strong>ask_grok</strong> ツールが使えるようになります",
+      "チャットで <strong>x_search</strong> ツールが使えるようになります",
     ],
   },
   en: {
@@ -96,7 +96,7 @@ const messages = {
       "Select <strong>Integrations</strong> from the left menu",
       'Click <strong>Add More</strong>, enter "grok-mcp-server" as the <strong>Name</strong> and paste the URL above as the <strong>Remote MCP Server URL</strong>',
       "When the authorization screen appears, enter the password you set for <code>AUTHORIZE_PASSWORD</code>",
-      "The <strong>ask_grok</strong> tool is now available in your chats",
+      "The <strong>x_search</strong> tool is now available in your chats",
     ],
   },
 } as const;

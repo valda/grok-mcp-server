@@ -76,6 +76,30 @@ Try it: *"Use x_search to search for recent AI coding posts on X"*
 - **Setup Dashboard** — The root page (`/`) shows environment variable status, a JWT secret generator, and step-by-step instructions
 - **i18n** — The setup dashboard and OAuth authorization screen detect `Accept-Language` and display in English or Japanese
 
+## Why grok-mcp-server?
+
+X offers an [official MCP server (xmcp)](https://github.com/xdevplatform/xmcp) that exposes the full X API v2 as 120+ MCP tools — posting, DMs, likes, follows, analytics, and more. If you need **write operations** (post, retweet, send DMs) or account management, use the official server.
+
+grok-mcp-server takes a different approach: it routes everything through the **xAI Grok API**, which includes X Search as a built-in tool. This means:
+
+- **No X API Developer Account required** — just an xAI API key
+- **AI-powered search & analysis** — Grok interprets, summarizes, and analyzes results (the official server returns raw API data)
+- **Structured output** — define any JSON Schema to extract exactly the data you need
+- **Multi-turn chaining** — build follow-up searches with context for drill-down and summarization
+- **Full archive access with no tier restriction** — the official X API requires Pro ($5,000/month) for full archive search
+
+### Cost comparison (as of April 2026)
+
+| | grok-mcp-server | Official X API (xmcp) |
+|---|---|---|
+| Monthly fee | **None** | $200/month (Basic) — $5,000/month (Pro) |
+| Per search call | **~$0.005** + token fees | Included in monthly plan, or $0.005/read (Pay-Per-Use) |
+| Full archive search | **Available** (via Grok) | Pro ($5,000/month) or higher |
+| 100 searches/month | **~$0.50** | **$200+/month** minimum |
+| Write operations | Not supported | Supported |
+
+For **search and analysis use cases**, grok-mcp-server is orders of magnitude cheaper. See [xAI Models and Pricing](https://docs.x.ai/developers/models) and [X API access levels](https://developer.x.com/en/portal/products) for the latest rates.
+
 ## Pricing
 
 Each `x_search` call incurs xAI API costs: **token fees** + **X Search tool fee** ($0.005/call).

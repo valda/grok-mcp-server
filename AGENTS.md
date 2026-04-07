@@ -49,10 +49,10 @@ Client → /.well-known/oauth-authorization-server  (メタデータ取得)
        → /api/oauth/token                          (認可コード → アクセストークン JWT 交換、PKCE 検証)
 ```
 
-- 認可コード・アクセストークンは **ステートレス JWT**（jose ライブラリ）
+- 認可コード・アクセストークン・クライアント登録情報はすべて **ステートレス JWT**（jose ライブラリ）
+- `client_id` は署名付き JWT で、登録情報（`redirect_uris`, `client_name`）を内包する（サーバー側状態なし）
 - `Mcp-Session-Id` はアクセストークンをそのまま流用（独立したセッション JWT は廃止済み）
-- クライアント登録情報のみインメモリ `Map`（`app/api/oauth/clients.ts`）
-- JWT ユーティリティは `app/api/oauth/jwt.ts` に集約（`signAuthorizationCode`, `signAccessToken`, `signRefreshToken`, `verifyJwt`）
+- JWT ユーティリティは `app/api/oauth/jwt.ts` に集約（`signClientRegistration`, `verifyClientRegistration`, `signAuthorizationCode`, `signAccessToken`, `signRefreshToken`, `verifyJwt`）
 
 ### MCP エンドポイント（`app/api/mcp/route.ts`）
 

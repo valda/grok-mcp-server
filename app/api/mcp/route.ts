@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
 
   // ボディパース
   const body = await request.json().catch(() => null);
-  console.log("[MCP] request:", JSON.stringify(body));
+  console.log("[MCP]", body?.method);
 
   if (!body || !body.method) {
     return jsonRpcError(body?.id ?? null, -32700, "Parse error");

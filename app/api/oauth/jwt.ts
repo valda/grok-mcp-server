@@ -32,6 +32,38 @@ export interface RefreshTokenPayload extends JWTPayload {
   client_id: string;
 }
 
+export interface ClientRegistrationPayload extends JWTPayload {
+  type: "client_registration";
+  client_name: string;
+  redirect_uris: string[];
+}
+
+/** クライアント登録 JWT を発行する（有効期限なし） */
+export async function signClientRegistration(params: {
+  client_name: string;
+  redirect_uris: string[];
+}): Promise<string> {
+  return new SignJWT({
+    type: "client_registration",
+    client_name: params.client_name,
+    redirect_uris: params.redirect_uris,
+  })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .sign(getSecret());
+}
+
+/** client_id JWT を検証し、ClientRegistrationPayload を返す。失敗時は null */
+export async function verifyClientRegistration(token: string): Promise<ClientRegistrationPayload | null> {
+  const payload = await verifyJwt<ClientRegistrationPayload>(token);
+  if (!payload) return null;
+  if (payload.type !== "client_registration") return null;
+  if (typeof payload.client_name !== "string") return null;
+  if (!Array.isArray(payload.redirect_uris)) return null;
+  if (!payload.redirect_uris.every((uri) => typeof uri === "string")) return null;
+  return payload;
+}
+
 /** リフレッシュトークン JWT を発行する（有効期限 30 日） */
 export async function signRefreshToken(clientId: string): Promise<string> {
   return new SignJWT({

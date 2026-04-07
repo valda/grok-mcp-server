@@ -15,7 +15,7 @@ function tokenRequest(data: Record<string, string>) {
 describe("POST /api/oauth/token", () => {
   describe("authorization_code grant", () => {
     it("正常に認可コードをトークンに交換できる", async () => {
-      const client = registerTestClient();
+      const client = await registerTestClient();
       const { codeVerifier, codeChallenge } = generatePkce();
       const redirectUri = client.redirect_uris[0];
 
@@ -43,7 +43,7 @@ describe("POST /api/oauth/token", () => {
     });
 
     it("code_verifier 不一致で 400 を返す", async () => {
-      const client = registerTestClient();
+      const client = await registerTestClient();
       const { codeChallenge } = generatePkce();
       const redirectUri = client.redirect_uris[0];
 
@@ -68,7 +68,7 @@ describe("POST /api/oauth/token", () => {
     });
 
     it("client_id 不一致で 400 を返す", async () => {
-      const client = registerTestClient();
+      const client = await registerTestClient();
       const { codeVerifier, codeChallenge } = generatePkce();
 
       const code = await signAuthorizationCode({
@@ -94,7 +94,7 @@ describe("POST /api/oauth/token", () => {
 
   describe("refresh_token grant", () => {
     it("リフレッシュトークンから新しいアクセストークンを発行できる", async () => {
-      const client = registerTestClient();
+      const client = await registerTestClient();
       const refreshToken = await signRefreshToken(client.client_id);
 
       const req = tokenRequest({

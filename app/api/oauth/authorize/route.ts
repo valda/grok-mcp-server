@@ -6,8 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { clients } from "../clients";
-import { signAuthorizationCode } from "../jwt";
+import { verifyClientRegistration, signAuthorizationCode } from "../jwt";
 
 type Locale = "ja" | "en";
 
@@ -60,44 +59,54 @@ function errorRedirect(redirectUri: string, error: string, description: string, 
   return NextResponse.redirect(url.toString(), 302);
 }
 
+type ValidationResult =
+  | { ok: true; clientName: string }
+  | { ok: false; response: NextResponse };
+
 /**
  * 共通バリデーション — GET / POST 両方で使う
- * 成功時は null、失敗時は NextResponse を返す
+ * 成功時は ok: true + clientName、失敗時は ok: false + NextResponse を返す
  */
-function validateParams(params: URLSearchParams): NextResponse | null {
+async function validateParams(params: URLSearchParams): Promise<ValidationResult> {
   const redirectUri = params.get("redirect_uri");
   const state = params.get("state") ?? undefined;
 
   // redirect_uri が無い場合はリダイレクトできないので JSON エラー
   if (!redirectUri) {
-    return NextResponse.json(
-      { error: "invalid_request", error_description: "redirect_uri is required" },
-      { status: 400 },
-    );
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: "invalid_request", error_description: "redirect_uri is required" },
+        { status: 400 },
+      ),
+    };
   }
 
-  // client_id チェック
+  // client_id チェック（JWT 署名検証 + 型・shape バリデーション）
   const clientId = params.get("client_id");
   if (!clientId) {
-    return errorRedirect(redirectUri, "invalid_request", "client_id is required", state);
+    return { ok: false, response: errorRedirect(redirectUri, "invalid_request", "client_id is required", state) };
   }
 
-  const client = clients.get(clientId);
-  if (!client) {
-    return errorRedirect(redirectUri, "invalid_request", "Unknown client_id", state);
+  const clientPayload = await verifyClientRegistration(clientId);
+  if (!clientPayload) {
+    return { ok: false, response: errorRedirect(redirectUri, "invalid_request", "Unknown client_id", state) };
   }
 
   // redirect_uri が登録済みか
-  if (!client.redirect_uris.includes(redirectUri)) {
-    return NextResponse.json(
-      { error: "invalid_request", error_description: "redirect_uri not registered" },
-      { status: 400 },
-    );
+  if (!clientPayload.redirect_uris.includes(redirectUri)) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: "invalid_request", error_description: "redirect_uri not registered" },
+        { status: 400 },
+      ),
+    };
   }
 
   // response_type
   if (params.get("response_type") !== "code") {
-    return errorRedirect(redirectUri, "unsupported_response_type", "Only response_type=code is supported", state);
+    return { ok: false, response: errorRedirect(redirectUri, "unsupported_response_type", "Only response_type=code is supported", state) };
   }
 
   // PKCE 必須
@@ -105,10 +114,10 @@ function validateParams(params: URLSearchParams): NextResponse | null {
   // token エンドポイントで常に SHA-256 検証を行うため、plain 等で送られても最終的に弾かれる。
   // クライアントは claude.ai 固定のため、早期エラーの実益が薄い。
   if (!params.get("code_challenge")) {
-    return errorRedirect(redirectUri, "invalid_request", "code_challenge is required (PKCE)", state);
+    return { ok: false, response: errorRedirect(redirectUri, "invalid_request", "code_challenge is required (PKCE)", state) };
   }
 
-  return null;
+  return { ok: true, clientName: clientPayload.client_name };
 }
 
 const FORWARD_PARAMS = [
@@ -481,12 +490,11 @@ function renderConsentPage(clientName: string, params: URLSearchParams, locale: 
 /** GET: バリデーション → 同意画面を返す */
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
-  const validationError = validateParams(params);
-  if (validationError) return validationError;
+  const result = await validateParams(params);
+  if (!result.ok) return result.response;
 
   const locale = detectLocale(request);
-  const client = clients.get(params.get("client_id")!)!;
-  return renderConsentPage(client.client_name, params, locale);
+  return renderConsentPage(result.clientName, params, locale);
 }
 
 /** POST: パスワード検証 → 認可コードを発行してリダイレクト */
@@ -498,19 +506,17 @@ export async function POST(request: NextRequest) {
     params.set(key, value.toString());
   }
 
-  const validationError = validateParams(params);
-  if (validationError) return validationError;
+  const result = await validateParams(params);
+  if (!result.ok) return result.response;
 
   // パスワード検証（AUTHORIZE_PASSWORD 未設定時はブロック）
   const expectedPassword = process.env.AUTHORIZE_PASSWORD;
   if (!expectedPassword) {
-    const client = clients.get(params.get("client_id")!)!;
-    return renderConsentPage(client.client_name, params, locale);
+    return renderConsentPage(result.clientName, params, locale);
   }
   const password = params.get("password") ?? "";
   if (password !== expectedPassword) {
-    const client = clients.get(params.get("client_id")!)!;
-    return renderConsentPage(client.client_name, params, locale, consentMessages[locale].wrongPassword);
+    return renderConsentPage(result.clientName, params, locale, consentMessages[locale].wrongPassword);
   }
 
   const redirectUri = params.get("redirect_uri")!;

@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { NextRequest } from "next/server";
-import { clients, type ClientInfo } from "./app/api/oauth/clients";
+import { signClientRegistration } from "./app/api/oauth/jwt";
 
 /** NextRequest を生成する */
 export function createRequest(
@@ -27,19 +27,15 @@ export function createJsonRequest(
   });
 }
 
-/** テスト用クライアントを clients Map に登録して返す */
-export function registerTestClient(overrides?: Partial<ClientInfo>): ClientInfo {
-  const clientId = crypto.randomUUID();
-  const info: ClientInfo = {
-    client_id: clientId,
-    client_name: "Test Client",
-    redirect_uris: ["http://localhost:3000/callback"],
-    grant_types: ["authorization_code", "refresh_token"],
-    response_types: ["code"],
-    ...overrides,
-  };
-  clients.set(clientId, info);
-  return info;
+/** テスト用クライアントを JWT client_id で生成して返す */
+export async function registerTestClient(overrides?: {
+  client_name?: string;
+  redirect_uris?: string[];
+}): Promise<{ client_id: string; client_name: string; redirect_uris: string[] }> {
+  const client_name = overrides?.client_name ?? "Test Client";
+  const redirect_uris = overrides?.redirect_uris ?? ["http://localhost:3000/callback"];
+  const client_id = await signClientRegistration({ client_name, redirect_uris });
+  return { client_id, client_name, redirect_uris };
 }
 
 /** PKCE code_verifier / code_challenge ペアを生成する */

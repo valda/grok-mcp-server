@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { GET, POST } from "./route";
+import { signAccessToken, signAuthorizationCode } from "../jwt";
 import { createRequest, registerTestClient, generatePkce } from "../../../../test-helpers";
 
-function authorizeUrl(clientId: string, overrides?: Record<string, string>) {
+async function authorizeUrl(clientId: string, overrides?: Record<string, string>) {
   const base = new URL("http://localhost:3000/api/oauth/authorize");
   const { codeChallenge } = generatePkce();
   const defaults: Record<string, string> = {
@@ -22,8 +23,8 @@ function authorizeUrl(clientId: string, overrides?: Record<string, string>) {
 
 describe("GET /api/oauth/authorize", () => {
   it("正常リクエストで同意画面 HTML を返す", async () => {
-    const client = registerTestClient();
-    const req = createRequest(authorizeUrl(client.client_id));
+    const client = await registerTestClient();
+    const req = createRequest(await authorizeUrl(client.client_id));
     const res = await GET(req);
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/html");
@@ -41,7 +42,7 @@ describe("GET /api/oauth/authorize", () => {
   });
 
   it("未登録 client_id で 302 エラーリダイレクトする", async () => {
-    const url = authorizeUrl("unknown-client");
+    const url = await authorizeUrl("unknown-client");
     const req = createRequest(url);
     const res = await GET(req);
     expect(res.status).toBe(302);
@@ -50,7 +51,7 @@ describe("GET /api/oauth/authorize", () => {
   });
 
   it("code_challenge 未指定でエラーリダイレクトする", async () => {
-    const client = registerTestClient();
+    const client = await registerTestClient();
     const url = new URL("http://localhost:3000/api/oauth/authorize");
     url.searchParams.set("client_id", client.client_id);
     url.searchParams.set("redirect_uri", client.redirect_uris[0]);
@@ -63,6 +64,30 @@ describe("GET /api/oauth/authorize", () => {
     expect(location).toContain("error=invalid_request");
     expect(location).toContain("code_challenge");
   });
+
+  it("access_token JWT を client_id に渡すと 302 エラーで拒否される（型混同攻撃）", async () => {
+    const fakeClientId = await signAccessToken("fake-client");
+    const url = await authorizeUrl(fakeClientId);
+    const req = createRequest(url);
+    const res = await GET(req);
+    expect(res.status).toBe(302);
+    const location = res.headers.get("location")!;
+    expect(location).toContain("error=invalid_request");
+  });
+
+  it("authorization_code JWT を client_id に渡すと 302 エラーで拒否される（型混同攻撃）", async () => {
+    const fakeClientId = await signAuthorizationCode({
+      client_id: "fake",
+      redirect_uri: "http://localhost:3000/callback",
+      code_challenge: "fake-challenge",
+    });
+    const url = await authorizeUrl(fakeClientId);
+    const req = createRequest(url);
+    const res = await GET(req);
+    expect(res.status).toBe(302);
+    const location = res.headers.get("location")!;
+    expect(location).toContain("error=invalid_request");
+  });
 });
 
 describe("POST /api/oauth/authorize", () => {
@@ -70,7 +95,7 @@ describe("POST /api/oauth/authorize", () => {
     const original = process.env.AUTHORIZE_PASSWORD;
     process.env.AUTHORIZE_PASSWORD = "test-password";
     try {
-      const client = registerTestClient();
+      const client = await registerTestClient();
       const { codeChallenge } = generatePkce();
       const formData = new URLSearchParams({
         client_id: client.client_id,
@@ -103,7 +128,7 @@ describe("POST /api/oauth/authorize", () => {
     const original = process.env.AUTHORIZE_PASSWORD;
     delete process.env.AUTHORIZE_PASSWORD;
     try {
-      const client = registerTestClient();
+      const client = await registerTestClient();
       const { codeChallenge } = generatePkce();
       const formData = new URLSearchParams({
         client_id: client.client_id,
@@ -134,7 +159,7 @@ describe("POST /api/oauth/authorize", () => {
     const original = process.env.AUTHORIZE_PASSWORD;
     process.env.AUTHORIZE_PASSWORD = "correct-password";
     try {
-      const client = registerTestClient();
+      const client = await registerTestClient();
       const { codeChallenge } = generatePkce();
       const formData = new URLSearchParams({
         client_id: client.client_id,

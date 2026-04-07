@@ -1,15 +1,25 @@
 # grok-mcp-server
 
-[日本語](README.ja.md)
+[日本語版はこちら](README.ja.md)
 
-A **Grok API proxy MCP server** for searching X (formerly Twitter) in real-time.
+Search X (formerly Twitter) in real-time from your AI assistant — powered by xAI's Grok API.
 
-Search posts, trends, and public opinion on X directly from your AI assistant using the `x_search` tool.
+- **No X API account needed** — just an xAI API key
+- **Quick setup** — `npx` with one env var, or deploy to Vercel and connect from claude.ai
+- **Wide compatibility** — Claude Code, claude.ai, Cursor, LM Studio, and other MCP clients
 
 ```
 MCP Client  ──stdio──▶  grok-mcp-server (npx)  ──API──▶  xAI Grok API
 claude.ai   ──OAuth 2.1──▶  grok-mcp-server (Vercel)  ──API──▶  xAI Grok API
 ```
+
+## What You Can Do
+
+- **Search recent posts** — Find what people are saying about any topic right now
+- **Summarize discussions** — Get AI-curated summaries of trends, opinions, and reactions
+- **Extract structured data** — Define a JSON Schema to pull exactly what you need (sentiment, topics, key quotes)
+- **Drill down with follow-ups** — Chain searches to filter, compare, or dig deeper into results
+- **Analyze threads** — Pass a post URL to get the original post and top replies ranked by engagement
 
 ## Quick Start
 
@@ -33,6 +43,8 @@ No installation required. Add to your MCP client configuration:
 
 Get your API key at [console.x.ai](https://console.x.ai).
 
+Try it: *"Use x_search to find recent posts about MCP servers and summarize the top opinions"*
+
 ### Option B: Deploy to Vercel (claude.ai web / Claude Code)
 
 #### 1. Deploy to Vercel
@@ -54,51 +66,26 @@ After deployment, open your project's root URL to verify the setup. The **setup 
 
 Once registered on claude.ai, the remote MCP server is also available from **Claude Code** (CLI / IDE extensions) under the same account.
 
-Try it: *"Use x_search to search for recent AI coding posts on X"*
-
-## Environment Variables
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `JWT_SECRET` | Yes | JWT signing key (generate via the setup dashboard or `openssl rand -base64 32`) |
-| `XAI_API_KEY` | Yes | xAI API key (obtain from [console.x.ai](https://console.x.ai)) |
-| `AUTHORIZE_PASSWORD` | Yes | Password for the authorization screen (authorization is blocked if unset) |
-| `BASE_URL` | No | Public URL override. Auto-detected from Vercel environment variables (`VERCEL_PROJECT_PRODUCTION_URL` / `VERCEL_URL`). Defaults to `http://localhost:3000` locally. |
-
-## Features
-
-- **Real-time X Search** — Search posts, trends, and public opinion on X via Grok's X Search
-- **Structured Output** — Define any JSON Schema via `output_schema` to extract exactly the data you need (sentiment, topics, reactions, etc.)
-- **Multi-turn Chaining** — Use `previous_response_id` to build follow-up searches with context for drill-down, filtering, and summarization workflows
-- **Thread Extraction** — Pass a post URL to retrieve the original post and top replies ranked by engagement, with structured output
-- **Dual Transport** — Use as a remote MCP server (zero-install, just paste a URL) or locally via stdio (`npx`)
-- **No X API Developer Account Required** — Uses xAI's Grok API, which includes X Search. No need to apply for X API access or pay for expensive tiers
-- **Setup Dashboard** — The root page (`/`) shows environment variable status, a JWT secret generator, and step-by-step instructions
-- **i18n** — The setup dashboard and OAuth authorization screen detect `Accept-Language` and display in English or Japanese
+Try it: *"Search X for reactions to the latest Grok release and return JSON with positive and negative themes"*
 
 ## Why grok-mcp-server?
 
-X offers an [official MCP server (xmcp)](https://github.com/xdevplatform/xmcp) that exposes the full X API v2 as 120+ MCP tools — posting, DMs, likes, follows, analytics, and more. If you need **write operations** (post, retweet, send DMs) or account management, use the official server.
+**Best for:** real-time search, trend analysis, sentiment extraction, topic summarization — any read-only X research workflow.
 
-grok-mcp-server takes a different approach: it routes everything through the **xAI Grok API**, which includes X Search as a built-in tool. This means:
+**Not for:** posting, retweeting, DMs, follows, or any write operation. Use the [official X MCP server (xmcp)](https://github.com/xdevplatform/xmcp) for those.
 
-- **No X API Developer Account required** — just an xAI API key
-- **AI-powered search & analysis** — Grok interprets, summarizes, and analyzes results (the official server returns raw API data)
-- **Structured output** — define any JSON Schema to extract exactly the data you need
-- **Multi-turn chaining** — build follow-up searches with context for drill-down and summarization
-- **Full archive access with no tier restriction** — the official X API requires Pro ($5,000/month) for full archive search
-
-### Cost comparison (as of April 2026)
+Compared to the official X API / xmcp:
 
 | | grok-mcp-server | Official X API (xmcp) |
 |---|---|---|
-| Monthly fee | **None** | $200/month (Basic) — $5,000/month (Pro) |
-| Per search call | **~$0.005** + token fees | Included in monthly plan, or $0.005/read (Pay-Per-Use) |
-| Full archive search | **Available** (via Grok) | Pro ($5,000/month) or higher |
-| 100 searches/month | **~$0.50** | **$200+/month** minimum |
+| X API account | **Not required** | Required ($200+/month) |
+| Search results | AI-interpreted summaries & analysis | Raw API data |
+| Structured output | Any JSON Schema | Not built-in |
+| Full archive search | **Available** (via Grok) | Pro ($5,000/month) |
+| Setup | `npx` + 1 env var, or Vercel deploy | Local server + X Developer app + OAuth callback setup |
 | Write operations | Not supported | Supported |
 
-For **search and analysis use cases**, grok-mcp-server is orders of magnitude cheaper. See [xAI Models and Pricing](https://docs.x.ai/developers/models) and [X API access levels](https://developer.x.com/en/portal/products) for the latest rates.
+For cost details, see [Pricing](#pricing) below.
 
 ## Pricing
 
@@ -114,6 +101,15 @@ The default model `grok-4-1-fast-non-reasoning` is the most cost-effective optio
 | grok-4.20-0309-reasoning | $2.00 / 1M tokens | $0.20 / 1M tokens | $6.00 / 1M tokens |
 
 See [xAI Models and Pricing](https://docs.x.ai/developers/models) for the latest rates.
+
+## Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `JWT_SECRET` | Yes | JWT signing key (generate via the setup dashboard or `openssl rand -base64 32`) |
+| `XAI_API_KEY` | Yes | xAI API key (obtain from [console.x.ai](https://console.x.ai)) |
+| `AUTHORIZE_PASSWORD` | Yes | Password for the authorization screen (authorization is blocked if unset) |
+| `BASE_URL` | No | Public URL override. Auto-detected from Vercel environment variables (`VERCEL_PROJECT_PRODUCTION_URL` / `VERCEL_URL`). Defaults to `http://localhost:3000` locally. |
 
 ## Local Development
 
@@ -144,7 +140,7 @@ XAI_API_KEY=your-key node dist/cli.js
 
 - **OAuth 2.1** — PKCE required, Dynamic Client Registration supported
 - **MCP** — POST-only JSON-RPC endpoint (exposes the `x_search` tool)
-- **Stateless** — Authorization codes and access tokens are signed JWTs; `Mcp-Session-Id` reuses the access token (no separate session JWT)
+- **Stateless** — Authorization codes, access tokens, and client registrations are all signed JWTs; `Mcp-Session-Id` reuses the access token (no separate session JWT)
 
 ### Endpoints
 

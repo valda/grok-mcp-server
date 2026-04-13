@@ -39,7 +39,7 @@ export async function callXai(options: CallXaiOptions): Promise<{ text: string; 
     };
   }
 
-  console.log("[xAI] request:", options.model);
+  console.error("[xAI] request:", options.model);
 
   const response = await fetch(XAI_API_URL, {
     method: "POST",
@@ -57,7 +57,7 @@ export async function callXai(options: CallXaiOptions): Promise<{ text: string; 
   }
 
   const data = await response.json();
-  console.log("[xAI] response:", data.id);
+  console.error("[xAI] response:", data.id);
 
   for (const item of data.output ?? []) {
     if (item.type === "message" && Array.isArray(item.content)) {

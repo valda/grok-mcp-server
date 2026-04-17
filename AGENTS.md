@@ -62,7 +62,7 @@ Client → /.well-known/oauth-authorization-server  (メタデータ取得)
 - `tools/list` → `x_search` ツール定義を返却
 - `tools/call` → xAI API (`https://api.x.ai/v1/responses`) へプロキシ
   - `prompt`: 検索クエリ（必須）
-  - `instructions`: Grok の振る舞い・出力スタイル制御（`previous_response_id` と排他）
+  - `instructions`: Grok の振る舞い・出力スタイル制御（`previous_response_id` と同時指定時は silent drop + stderr 警告）
   - `previous_response_id`: 前回の response_id を渡してチェーン検索（深掘り・フィルタ・要約）
   - `output_schema`: JSON Schema による構造化出力（センチメント分析、トピック抽出など）
 - GET / DELETE は 405

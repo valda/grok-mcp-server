@@ -53,14 +53,14 @@ Examples:
 - "Be concise, max 2 sentences per item"
 - "Return only a JSON-ready summary with no commentary"
 - "Quote post text exactly and do not infer missing facts"
-Mutually exclusive with previous_response_id.`,
+Ignored when previous_response_id is also set (xAI Responses API treats them as mutually exclusive).`,
       },
       previous_response_id: {
         type: "string" as const,
         description: `Response ID from a previous x_search call.
 Use for follow-up searches that continue from prior context — e.g. drill down into a specific topic, filter results, or ask a follow-up question.
 The response_id is returned in every x_search result.
-Mutually exclusive with instructions.`,
+If instructions is also set, instructions is ignored (xAI Responses API treats them as mutually exclusive).`,
       },
       output_schema: {
         type: "object" as const,
@@ -116,16 +116,21 @@ export async function handleXSearchCall(args: Record<string, unknown>): Promise<
     return errorResult("output_schema must be an object");
   }
 
-  if (args.instructions && args.previous_response_id) {
-    return errorResult("instructions and previous_response_id are mutually exclusive");
+  let instructions = args.instructions as string | undefined;
+  const previous_response_id = args.previous_response_id as string | undefined;
+  if (instructions && previous_response_id) {
+    console.error(
+      "[grok-mcp-server] instructions dropped because previous_response_id is present (mutually exclusive per xAI Responses API)",
+    );
+    instructions = undefined;
   }
 
   try {
     const result = await callXai({
       prompt,
       model,
-      instructions: args.instructions as string | undefined,
-      previous_response_id: args.previous_response_id as string | undefined,
+      instructions,
+      previous_response_id,
       output_schema: args.output_schema as object | undefined,
     });
     return {

@@ -49,14 +49,31 @@ describe("handleXSearchCall", () => {
     expect(result.content[0].text).toContain("prompt is required");
   });
 
-  it("instructions と previous_response_id の同時指定で isError を返す", async () => {
+  it("instructions と previous_response_id を同時指定すると instructions を無視して成功する", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        id: "resp_chain",
+        output: [{ type: "message", content: [{ type: "output_text", text: "chained result" }] }],
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const warnSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
     const result = await handleXSearchCall({
       prompt: "test",
       instructions: "foo",
       previous_response_id: "bar",
     });
-    expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain("mutually exclusive");
+
+    expect(result.isError).toBeUndefined();
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("instructions dropped"),
+    );
+
+    const requestBody = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(requestBody.instructions).toBeUndefined();
+    expect(requestBody.previous_response_id).toBe("bar");
   });
 
   it("model が文字列でなければ isError を返す", async () => {

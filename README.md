@@ -32,7 +32,7 @@ No installation required. Add to your MCP client configuration:
   "mcpServers": {
     "grok-mcp-server": {
       "command": "npx",
-      "args": ["-y", "grok-mcp-server"],
+      "args": ["-y", "grok-mcp-server@latest"],
       "env": {
         "XAI_API_KEY": "your-xai-api-key"
       }

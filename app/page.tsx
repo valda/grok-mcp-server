@@ -481,22 +481,24 @@ export default async function Home() {
             }
 
             .env-badge-warn {
-              background: var(--warning-bg);
-              border: 1px solid var(--warning-border);
-              color: var(--accent);
+              background: var(--error-bg);
+              border: 1px solid var(--error-border);
+              color: var(--error);
               margin-left: 0.35rem;
               cursor: help;
+              font-weight: 600;
             }
 
             .env-warning-desc {
               margin-top: 1rem;
               padding: 0.7rem 0.85rem;
-              background: var(--warning-bg);
-              border: 1px solid var(--warning-border);
+              background: var(--error-bg);
+              border: 1px solid var(--error-border);
               border-radius: var(--radius-sm);
               font-size: 0.78rem;
-              color: var(--accent);
+              color: var(--error);
               line-height: 1.5;
+              font-weight: 500;
             }
 
             /* Details / Summary */

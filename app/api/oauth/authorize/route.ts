@@ -375,15 +375,16 @@ function renderConsentPage(clientName: string, params: URLSearchParams, locale: 
     }
 
     .warning-banner {
-      background: var(--warning-bg);
-      border: 1px solid var(--warning-border);
+      background: var(--error-bg);
+      border: 1px solid var(--error-border);
       border-radius: var(--radius-sm);
       padding: 0.6rem 0.8rem;
       margin-bottom: 1.25rem;
       font-size: 0.8rem;
-      color: var(--accent);
+      color: var(--error);
       text-align: left;
       line-height: 1.5;
+      font-weight: 500;
     }
     @keyframes shake {
       10%,90% { transform: translateX(-1px); }

@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { readEnv } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,7 @@ interface EnvStatus {
   set: boolean;
   required: boolean;
   description: string;
+  hasWhitespace: boolean;
 }
 
 const messages = {
@@ -26,6 +28,8 @@ const messages = {
     colRequired: "必須",
     statusSet: "設定済み",
     statusUnset: "未設定",
+    whitespaceBadge: "前後空白あり",
+    whitespaceDesc: "環境変数の値の前後に空白・改行が混入しています。認可は自動 trim で動作していますが、Vercel ダッシュボードで値を修正してください。",
     required: "必須",
     optional: "任意",
     jwtDesc: "JWT 署名鍵（下のジェネレーターで生成できます）",
@@ -67,6 +71,8 @@ const messages = {
     colRequired: "Required",
     statusSet: "Set",
     statusUnset: "Not set",
+    whitespaceBadge: "Whitespace",
+    whitespaceDesc: "This env var has leading/trailing whitespace. Authorization works via auto-trim at runtime, but please fix the value in the Vercel dashboard.",
     required: "Yes",
     optional: "No",
     jwtDesc: "JWT signing key (generate below)",
@@ -106,14 +112,19 @@ export default async function Home() {
   const locale = detectLocale(headerList.get("accept-language"));
   const t = messages[locale];
 
+  const jwtInfo = readEnv("JWT_SECRET");
+  const xaiInfo = readEnv("XAI_API_KEY");
+  const authInfo = readEnv("AUTHORIZE_PASSWORD");
+
   const envVars: EnvStatus[] = [
-    { name: "JWT_SECRET", set: !!process.env.JWT_SECRET, required: true, description: t.jwtDesc },
-    { name: "XAI_API_KEY", set: !!process.env.XAI_API_KEY, required: true, description: t.xaiDesc },
-    { name: "AUTHORIZE_PASSWORD", set: !!process.env.AUTHORIZE_PASSWORD, required: true, description: t.authDesc },
+    { name: "JWT_SECRET", set: !!jwtInfo.value, required: true, description: t.jwtDesc, hasWhitespace: jwtInfo.hasWhitespace },
+    { name: "XAI_API_KEY", set: !!xaiInfo.value, required: true, description: t.xaiDesc, hasWhitespace: xaiInfo.hasWhitespace },
+    { name: "AUTHORIZE_PASSWORD", set: !!authInfo.value, required: true, description: t.authDesc, hasWhitespace: authInfo.hasWhitespace },
   ];
 
   const allRequiredSet = envVars.filter((v) => v.required).every((v) => v.set);
-  const jwtSecretSet = !!process.env.JWT_SECRET;
+  const anyWhitespace = envVars.some((v) => v.hasWhitespace);
+  const jwtSecretSet = !!jwtInfo.value;
 
   const baseUrl =
     process.env.BASE_URL ||
@@ -154,10 +165,16 @@ export default async function Home() {
                     ? <span className="env-badge env-badge-set">{t.statusSet}</span>
                     : <span className="env-badge env-badge-unset">{t.statusUnset}</span>
                   }
+                  {v.hasWhitespace && (
+                    <span className="env-badge env-badge-warn" title={t.whitespaceDesc}>⚠ {t.whitespaceBadge}</span>
+                  )}
                 </div>
               </div>
             ))}
           </div>
+          {anyWhitespace && (
+            <p className="env-warning-desc">{t.whitespaceDesc}</p>
+          )}
         </section>
 
         {/* JWT Generator */}
@@ -461,6 +478,25 @@ export default async function Home() {
               background: var(--error-bg);
               border: 1px solid var(--error-border);
               color: var(--error);
+            }
+
+            .env-badge-warn {
+              background: var(--warning-bg);
+              border: 1px solid var(--warning-border);
+              color: var(--accent);
+              margin-left: 0.35rem;
+              cursor: help;
+            }
+
+            .env-warning-desc {
+              margin-top: 1rem;
+              padding: 0.7rem 0.85rem;
+              background: var(--warning-bg);
+              border: 1px solid var(--warning-border);
+              border-radius: var(--radius-sm);
+              font-size: 0.78rem;
+              color: var(--accent);
+              line-height: 1.5;
             }
 
             /* Details / Summary */

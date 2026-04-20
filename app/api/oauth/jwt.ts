@@ -6,9 +6,10 @@
  */
 
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
+import { readEnv } from "@/lib/env";
 
 function getSecret(): Uint8Array {
-  const secret = process.env.JWT_SECRET;
+  const secret = readEnv("JWT_SECRET").value;
   if (!secret) {
     throw new Error("JWT_SECRET environment variable is not set");
   }

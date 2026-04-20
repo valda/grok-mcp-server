@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { verifyClientRegistration, signAuthorizationCode } from "../jwt";
+import { readEnv, listWhitespaceIssues } from "@/lib/env";
 
 type Locale = "ja" | "en";
 
@@ -23,6 +24,8 @@ const consentMessages = {
     passwordLabel: "パスワード",
     approve: "許可する",
     wrongPassword: "パスワードが正しくありません",
+    whitespaceWarning: (names: string[]) =>
+      `⚠ 以下の環境変数に前後の空白・改行が混入しています（自動 trim で動作中）: ${names.join(", ")}。Vercel ダッシュボードで値を修正してください。`,
     setupIncomplete: "⚠ セットアップが未完了です",
     setupDesc: "環境変数 <code>AUTHORIZE_PASSWORD</code> が設定されていないため、認可を許可できません。",
     setupSteps: [
@@ -39,6 +42,8 @@ const consentMessages = {
     passwordLabel: "Password",
     approve: "Allow",
     wrongPassword: "Incorrect password",
+    whitespaceWarning: (names: string[]) =>
+      `⚠ The following environment variables have leading/trailing whitespace (auto-trimmed at runtime): ${names.join(", ")}. Please fix the values in the Vercel dashboard.`,
     setupIncomplete: "⚠ Setup Incomplete",
     setupDesc: "Authorization is blocked because the <code>AUTHORIZE_PASSWORD</code> environment variable is not set.",
     setupSteps: [
@@ -141,9 +146,13 @@ function renderConsentPage(clientName: string, params: URLSearchParams, locale: 
     })
     .join("\n            ");
 
-  const passwordConfigured = !!process.env.AUTHORIZE_PASSWORD;
+  const passwordConfigured = !!readEnv("AUTHORIZE_PASSWORD").value;
+  const whitespaceIssues = listWhitespaceIssues();
+  const whitespaceBanner = whitespaceIssues.length > 0
+    ? `<div class="warning-banner">${escapeHtml(t.whitespaceWarning(whitespaceIssues))}</div>`
+    : "";
 
-  const displayError = errorMessage ?? (errorMessage === undefined ? undefined : errorMessage);
+  const displayError = errorMessage;
 
   const html = `<!DOCTYPE html>
 <html lang="${locale}">
@@ -364,6 +373,18 @@ function renderConsentPage(clientName: string, params: URLSearchParams, locale: 
       text-align: left;
       animation: shake 0.4s cubic-bezier(0.36,0.07,0.19,0.97);
     }
+
+    .warning-banner {
+      background: var(--warning-bg);
+      border: 1px solid var(--warning-border);
+      border-radius: var(--radius-sm);
+      padding: 0.6rem 0.8rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.8rem;
+      color: var(--accent);
+      text-align: left;
+      line-height: 1.5;
+    }
     @keyframes shake {
       10%,90% { transform: translateX(-1px); }
       20%,80% { transform: translateX(2px); }
@@ -456,6 +477,7 @@ function renderConsentPage(clientName: string, params: URLSearchParams, locale: 
     <h1>${escapeHtml(t.heading)}</h1>
     <p class="subtitle">${t.requesting(escapeHtml(clientName))}</p>
     <div class="divider"></div>
+    ${whitespaceBanner}
     ${displayError
       ? `<div class="error-msg">${escapeHtml(displayError)}</div>`
       : ""}
@@ -510,7 +532,9 @@ export async function POST(request: NextRequest) {
   if (!result.ok) return result.response;
 
   // パスワード検証（AUTHORIZE_PASSWORD 未設定時はブロック）
-  const expectedPassword = process.env.AUTHORIZE_PASSWORD;
+  // env 値は自動 trim（貼り付けによる改行・空白混入の吸収）。
+  // フォーム入力側は trim しない — ユーザーのタイポを silent に通すとバグの温床になる。
+  const expectedPassword = readEnv("AUTHORIZE_PASSWORD").value;
   if (!expectedPassword) {
     return renderConsentPage(result.clientName, params, locale);
   }

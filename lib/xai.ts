@@ -1,3 +1,5 @@
+import { readEnv } from "./env";
+
 export const XAI_API_URL = "https://api.x.ai/v1/responses";
 export const DEFAULT_MODEL = "grok-4-1-fast-non-reasoning";
 export const REASONING_MODEL = "grok-4-1-fast-reasoning";
@@ -11,7 +13,7 @@ export interface CallXaiOptions {
 }
 
 export async function callXai(options: CallXaiOptions): Promise<{ text: string; response_id: string }> {
-  const apiKey = process.env.XAI_API_KEY;
+  const apiKey = readEnv("XAI_API_KEY").value;
   if (!apiKey) {
     throw new Error("XAI_API_KEY environment variable is not set");
   }

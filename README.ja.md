@@ -89,16 +89,12 @@ claude.ai にリモート MCP サーバーとして登録すると、同じア�
 
 `x_search` の各呼び出しには xAI API の利用料金が発生する: **トークン料金** + **X Search ツール料金**（$0.005/回）。
 
-デフォルトモデル `grok-4-1-fast-non-reasoning` が最もコスト効率が高い:
+| モデル | Input | Output |
+|--------|-------|--------|
+| grok-4.20-non-reasoning（**デフォルト**） | $1.25 / 1M tokens | $2.50 / 1M tokens |
+| grok-4.3 | $1.25 / 1M tokens | $2.50 / 1M tokens |
 
-| モデル | Input | Cached Input | Output |
-|--------|-------|-------------|--------|
-| grok-4-1-fast-non-reasoning（**デフォルト**） | $0.20 / 1M tokens | $0.05 / 1M tokens | $0.50 / 1M tokens |
-| grok-4-1-fast-reasoning | $0.20 / 1M tokens | $0.05 / 1M tokens | $0.50 / 1M tokens |
-| grok-4.20-0309-non-reasoning | $2.00 / 1M tokens | $0.20 / 1M tokens | $6.00 / 1M tokens |
-| grok-4.20-0309-reasoning | $2.00 / 1M tokens | $0.20 / 1M tokens | $6.00 / 1M tokens |
-
-最新の料金は [xAI Models and Pricing](https://docs.x.ai/developers/models) を参照。
+最新の料金（キャッシュ入力単価を含む）は [xAI Models and Pricing](https://docs.x.ai/developers/models) を参照。
 
 ## 環境変数
 

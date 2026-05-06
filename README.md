@@ -91,16 +91,12 @@ For cost details, see [Pricing](#pricing) below.
 
 Each `x_search` call incurs xAI API costs: **token fees** + **X Search tool fee** ($0.005/call).
 
-The default model `grok-4-1-fast-non-reasoning` is the most cost-effective option:
+| Model | Input | Output |
+|-------|-------|--------|
+| grok-4.20-non-reasoning (**default**) | $1.25 / 1M tokens | $2.50 / 1M tokens |
+| grok-4.3 | $1.25 / 1M tokens | $2.50 / 1M tokens |
 
-| Model | Input | Cached Input | Output |
-|-------|-------|-------------|--------|
-| grok-4-1-fast-non-reasoning (**default**) | $0.20 / 1M tokens | $0.05 / 1M tokens | $0.50 / 1M tokens |
-| grok-4-1-fast-reasoning | $0.20 / 1M tokens | $0.05 / 1M tokens | $0.50 / 1M tokens |
-| grok-4.20-0309-non-reasoning | $2.00 / 1M tokens | $0.20 / 1M tokens | $6.00 / 1M tokens |
-| grok-4.20-0309-reasoning | $2.00 / 1M tokens | $0.20 / 1M tokens | $6.00 / 1M tokens |
-
-See [xAI Models and Pricing](https://docs.x.ai/developers/models) for the latest rates.
+See [xAI Models and Pricing](https://docs.x.ai/developers/models) for the latest rates including cached input pricing.
 
 ## Environment Variables
 

@@ -1,8 +1,8 @@
 import { readEnv } from "./env";
 
 export const XAI_API_URL = "https://api.x.ai/v1/responses";
-export const DEFAULT_MODEL = "grok-4-1-fast-non-reasoning";
-export const REASONING_MODEL = "grok-4-1-fast-reasoning";
+export const DEFAULT_MODEL = "grok-4.20-non-reasoning";
+export const REASONING_MODEL = "grok-4.3";
 
 export interface CallXaiOptions {
   prompt: string;

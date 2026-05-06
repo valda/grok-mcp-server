@@ -31,13 +31,13 @@ describe("callXai", () => {
       }),
     }));
 
-    const result = await callXai({ prompt: "test", model: "grok-4-1-fast-non-reasoning" });
+    const result = await callXai({ prompt: "test", model: "grok-4.20-non-reasoning" });
     expect(result).toEqual({ text: "hello from grok", response_id: "resp_abc" });
   });
 
   it("XAI_API_KEY 未設定でエラーを投げる", async () => {
     delete process.env.XAI_API_KEY;
-    await expect(callXai({ prompt: "test", model: "grok-4-1-fast-non-reasoning" }))
+    await expect(callXai({ prompt: "test", model: "grok-4.20-non-reasoning" }))
       .rejects.toThrow("XAI_API_KEY");
   });
 
@@ -48,7 +48,7 @@ describe("callXai", () => {
       text: async () => "Rate limited",
     }));
 
-    await expect(callXai({ prompt: "test", model: "grok-4-1-fast-non-reasoning" }))
+    await expect(callXai({ prompt: "test", model: "grok-4.20-non-reasoning" }))
       .rejects.toThrow("xAI API error (429)");
   });
 
@@ -62,7 +62,7 @@ describe("callXai", () => {
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    await callXai({ prompt: "test", model: "grok-4-1-fast-non-reasoning", instructions: "Respond in Japanese" });
+    await callXai({ prompt: "test", model: "grok-4.20-non-reasoning", instructions: "Respond in Japanese" });
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(body.instructions).toBe("Respond in Japanese");
   });
@@ -78,7 +78,7 @@ describe("callXai", () => {
     vi.stubGlobal("fetch", mockFetch);
 
     const schema = { type: "object", properties: { x: { type: "string" } }, required: ["x"], additionalProperties: false };
-    await callXai({ prompt: "test", model: "grok-4-1-fast-non-reasoning", output_schema: schema });
+    await callXai({ prompt: "test", model: "grok-4.20-non-reasoning", output_schema: schema });
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(body.text.format.type).toBe("json_schema");
     expect(body.text.format.schema).toEqual(schema);

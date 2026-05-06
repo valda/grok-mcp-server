@@ -79,4 +79,4 @@ MCP 側は `Mcp-Session-Id` ヘッダーの送受信・Expose を許可。
 - Remote 版は自前 JSON-RPC（Vercel Serverless 向け最適化）、stdio 版は MCP SDK（標準準拠）と使い分け
 - stdio 版は MCP SDK（`@modelcontextprotocol/sdk`）を使用し、標準的な MCP プロトコル実装に準拠
 - Public client のみ対応（client_secret なし、`token_endpoint_auth_methods_supported: ["none"]`）
-- デフォルトモデルは `grok-4-1-fast-non-reasoning`（最安: input $0.20 / output $0.50 per 1M tokens）。比較・因果関係・複数ステップの推論が必要なクエリには `grok-4-1-fast-reasoning`（同価格）を `model` パラメータで指定可能
+- デフォルトモデルは `grok-4.20-non-reasoning`（input $1.25 / output $2.50 per 1M tokens）。比較・因果関係・複数ステップの推論が必要なクエリには `grok-4.3`（同価格）を `model` パラメータで指定可能

@@ -78,10 +78,10 @@ Compared to the official X API / xmcp:
 
 | | grok-mcp-server | Official X API (xmcp) |
 |---|---|---|
-| X API account | **Not required** | Required ($200+/month) |
+| X API account | **Not required** | Required (pay-per-use credits) |
 | Search results | AI-interpreted summaries & analysis | Raw API data |
 | Structured output | Any JSON Schema | Not built-in |
-| Full archive search | **Available** (via Grok) | Pro ($5,000/month) |
+| Full archive search | **Available** (via Grok) | Available (pay-per-use) |
 | Setup | `npx` + 1 env var, or Vercel deploy | Local server + X Developer app + OAuth callback setup |
 | Write operations | Not supported | Supported |
 
@@ -97,6 +97,17 @@ Each `x_search` call incurs xAI API costs: **token fees** + **X Search tool fee*
 | grok-4.3 | $1.25 / 1M tokens | $2.50 / 1M tokens |
 
 See [xAI Models and Pricing](https://docs.x.ai/developers/models) for the latest rates including cached input pricing.
+
+### Cost advantage over direct X API
+
+The X API bills per resource ($0.005 per post read, [pay-per-usage](https://docs.x.com/x-api/pricing)). `x_search` bills per **tool call** — flat, regardless of how many posts Grok reads internally to answer. Concrete comparison:
+
+| Workload | grok-mcp-server | X API direct |
+|---|---|---|
+| Single post + 50-reply thread | ~$0.01 (1 tool call + tokens) | ~$0.255 (51 × $0.005) |
+| Trend search returning 100 posts | ~$0.01 | ~$0.50 |
+
+You also get AI-interpreted output — summaries, ranked replies, structured fields per `output_schema` — instead of raw JSON that you would need to summarize yourself with another LLM call.
 
 ## Environment Variables
 

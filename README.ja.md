@@ -4,7 +4,7 @@ AI アシスタントから X（旧 Twitter）をリアルタイム検索 — xA
 
 - **X API アカウント不要** — xAI API キーだけで使える
 - **セットアップが簡単** — `npx` + 環境変数1つ、または Vercel にデプロイして claude.ai から接続
-- **幅広く対応** — Claude Code、claude.ai、Cursor、LM Studio などの MCP クライアントで動作
+- **幅広く対応** — Hermes Agent、Claude Code、claude.ai、Cursor、LM Studio などの MCP クライアントで動作
 
 ```
 MCP Client  ──stdio──▶  grok-mcp-server (npx)  ──API──▶  xAI Grok API
@@ -21,7 +21,7 @@ claude.ai   ──OAuth 2.1──▶  grok-mcp-server (Vercel)  ──API──�
 
 ## クイックスタート
 
-### Option A: npx で使う（Claude Code、LM Studio、Cursor など）
+### Option A: npx で使う（Hermes Agent、Claude Code、LM Studio、Cursor など）
 
 インストール不要。MCP クライアントの設定に以下を追加するだけ:
 
@@ -30,7 +30,7 @@ claude.ai   ──OAuth 2.1──▶  grok-mcp-server (Vercel)  ──API──�
   "mcpServers": {
     "grok-mcp-server": {
       "command": "npx",
-      "args": ["-y", "grok-mcp-server"],
+      "args": ["-y", "grok-mcp-server@latest"],
       "env": {
         "XAI_API_KEY": "your-xai-api-key"
       }
@@ -38,6 +38,19 @@ claude.ai   ──OAuth 2.1──▶  grok-mcp-server (Vercel)  ──API──�
   }
 }
 ```
+
+[Hermes Agent](https://github.com/NousResearch/hermes-agent) では、`~/.hermes/config.yaml` の `mcp_servers` に以下を追加する:
+
+```yaml
+mcp_servers:
+  grok-mcp-server:
+    command: "npx"
+    args: ["-y", "grok-mcp-server@latest"]
+    env:
+      XAI_API_KEY: "your-xai-api-key"
+```
+
+設定後に Hermes を再起動すると、`mcp_grok_mcp_server_x_search` ツールとして登録される。
 
 API キーは [console.x.ai](https://console.x.ai) で取得できる。
 

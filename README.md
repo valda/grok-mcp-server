@@ -6,7 +6,7 @@ Search X (formerly Twitter) in real-time from your AI assistant — powered by x
 
 - **No X API account needed** — just an xAI API key
 - **Quick setup** — `npx` with one env var, or deploy to Vercel and connect from claude.ai
-- **Wide compatibility** — Claude Code, claude.ai, Cursor, LM Studio, and other MCP clients
+- **Wide compatibility** — Hermes Agent, Claude Code, claude.ai, Cursor, LM Studio, and other MCP clients
 
 ```
 MCP Client  ──stdio──▶  grok-mcp-server (npx)  ──API──▶  xAI Grok API
@@ -23,7 +23,7 @@ claude.ai   ──OAuth 2.1──▶  grok-mcp-server (Vercel)  ──API──�
 
 ## Quick Start
 
-### Option A: Use via npx (Claude Code, LM Studio, Cursor, etc.)
+### Option A: Use via npx (Hermes Agent, Claude Code, LM Studio, Cursor, etc.)
 
 No installation required. Add to your MCP client configuration:
 
@@ -40,6 +40,19 @@ No installation required. Add to your MCP client configuration:
   }
 }
 ```
+
+For [Hermes Agent](https://github.com/NousResearch/hermes-agent), add the server under `mcp_servers` in `~/.hermes/config.yaml`:
+
+```yaml
+mcp_servers:
+  grok-mcp-server:
+    command: "npx"
+    args: ["-y", "grok-mcp-server@latest"]
+    env:
+      XAI_API_KEY: "your-xai-api-key"
+```
+
+Restart Hermes after editing the config. The tool will be registered as `mcp_grok_mcp_server_x_search`.
 
 Get your API key at [console.x.ai](https://console.x.ai).
 

@@ -102,7 +102,7 @@ For cost details, see [Pricing](#pricing) below.
 
 ## Pricing
 
-Each `x_search` call incurs xAI API costs: **token fees** + **X Search tool fee** ($0.005/call).
+Each `x_search` call incurs xAI API costs: **token fees** + **X Search tool fee** ([$0.005/call](https://docs.x.ai/developers/pricing#tools-pricing)).
 
 | Model | Input | Output |
 |-------|-------|--------|
@@ -113,12 +113,12 @@ See [xAI Models and Pricing](https://docs.x.ai/developers/models) for the latest
 
 ### Cost advantage over direct X API
 
-The X API bills per resource ($0.005 per post read, [pay-per-usage](https://docs.x.com/x-api/pricing)). `x_search` bills per **tool call** — flat, regardless of how many posts Grok reads internally to answer. Concrete comparison:
+The X API bills per resource ($0.005 per post returned, [pay-per-usage](https://docs.x.com/x-api/getting-started/pricing)). `x_search` bills per **tool call** — flat, regardless of how many posts Grok reads internally to answer. Concrete comparison:
 
 | Workload | grok-mcp-server | X API direct |
 |---|---|---|
-| Single post + 50-reply thread | ~$0.01 (1 tool call + tokens) | ~$0.255 (51 × $0.005) |
-| Trend search returning 100 posts | ~$0.01 | ~$0.50 |
+| Single post + 50-reply thread | ~$0.01 (1 tool call + tokens) | ~$0.255 (1 request, 51 posts × $0.005) |
+| Trend search returning 100 posts | ~$0.01 | ~$0.50 (1 request, 100 posts × $0.005) |
 
 You also get AI-interpreted output — summaries, ranked replies, structured fields per `output_schema` — instead of raw JSON that you would need to summarize yourself with another LLM call.
 
